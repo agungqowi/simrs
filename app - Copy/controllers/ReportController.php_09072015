@@ -1,0 +1,1880 @@
+<?php
+
+class ReportController extends \BaseController {
+
+	/**
+	 * Display a listing of the resource.
+	 *
+	 * @return Response
+	 */
+	public function index()
+	{	
+		$ugd = User::find( Auth::user()->id )->ugd;
+		return View::make('ugd.list', array('ugd' => $ugd));
+	}
+
+
+// start =============================== RAWAT JALAN =============================== 
+	public function rawat_jalan()
+	{	
+		$user = Auth::user();
+		$group = DB::table('groups')->where('id',$user->group_id)->first();
+		$slug = $group->slug;
+		$single = false;
+		//echo $slug;
+		if (strpos($slug,'poli_') !== false) {
+			$single = true;
+            $id = str_replace("poli_", "", $slug);
+            $poli = db::table('tbpoli')->where('NamaPoli' ,'LIKE' ,'%'.$id.'%')->first();
+        }
+        else{
+        	$poli = Poli::all();
+        }
+		return View::make('report.rawat_jalan', array('poli' => $poli,'single' => $single));
+	}
+
+	public function rawat_jalan_view()
+	{
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('dari_tanggal'));
+		$dari_tanggal = $date->format('Y-m-d');
+
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('sampai_tanggal'));
+		$sampai_tanggal = $date->format('Y-m-d');
+
+		$poli = Input::get('poli');
+		if($poli == "all"){
+			$pasien = DB::table('tbpasienjalan')->join('tbpasien','tbpasien.NoRM','=','tbpasienjalan.NoRM')
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))->where('Poli' , '!=' , '')
+			->orderBy('Poli')->orderBy('tbpasien.Nama')->get();
+		}
+		else{
+			$pasien = DB::table('tbpasienjalan')->join('tbpasien','tbpasien.NoRM','=','tbpasienjalan.NoRM')
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))->where('Poli' , '=' , $poli)
+			->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->get();
+		}
+		
+		//var_dump($registrasi);
+		return View::make('report.rawat_jalan_view' , 
+			array(
+				'pasien' => $pasien,
+				'dari_tanggal' => $dari_tanggal,
+				'sampai_tanggal' => $sampai_tanggal,
+				'poli' => $poli
+			)
+		);
+	}
+
+	public function rawat_jalan_print()
+	{
+		$dari_tanggal = Input::get('dari_tanggal');
+
+		$sampai_tanggal = Input::get('sampai_tanggal');
+
+		$poli = Input::get('poli');
+		if($poli == "all"){
+			$pasien = DB::table('tbpasienjalan')->join('tbpasien','tbpasien.NoRM','=','tbpasienjalan.NoRM')
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))->where('Poli' , '!=' , '')
+			->orderBy('Poli')->orderBy('tbpasien.Nama')->get();
+		}
+		else{
+			$pasien = DB::table('tbpasienjalan')->join('tbpasien','tbpasien.NoRM','=','tbpasienjalan.NoRM')
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))->where('Poli' , '=' , $poli)
+			->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->get();
+		}
+		
+		//var_dump($registrasi);
+		return View::make('report.rawat_jalan_print' , 
+			array(
+				'pasien' => $pasien,
+				'dari_tanggal' => $dari_tanggal,
+				'sampai_tanggal' => $sampai_tanggal,
+				'poli' => $poli
+			)
+		);
+	}
+
+	public function rawat_jalan_excel($mode)
+	{
+		$dari_tanggal = Input::get('dari_tanggal');
+		$sampai_tanggal = Input::get('sampai_tanggal');
+		$poli = Input::get('poli');
+
+		if($poli == "all"){
+			$pasien = DB::table('tbpasienjalan')->join('tbpasien','tbpasien.NoRM','=','tbpasienjalan.NoRM')
+			->select(['tbpasien.NoRM','Nama','GolPasien','Tanggal','Poli'])
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))->where('Poli' , '!=' , '')
+			->orderBy('Poli')->orderBy('tbpasien.Nama')->get();
+		}
+		else{
+			$pasien = DB::table('tbpasienjalan')->join('tbpasien','tbpasien.NoRM','=','tbpasienjalan.NoRM')
+			->select(['tbpasien.NoRM','Nama','GolPasien','Tanggal','Poli'])
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))->where('Poli' , '=' , $poli)
+			->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->get();
+		}
+		
+		$title = 'Laporan Rawat Jalan';
+		$colnames = array('No RM', 'Nama', 'Gol Pasien', 'Tanggal', 'Poli');
+		$format = array('B' => '0');
+		$summary = 'Jumlah Pasien';
+		$this->makeExcel($pasien,$title,$colnames,$format,$mode,$dari_tanggal,$sampai_tanggal,$summary);
+	}
+// end =============================== RAWAT JALAN =============================== 
+
+// start ============================= RAWAT INAP =============================== 
+	public function rawat_inap()
+	{	
+		$user = Auth::user();
+		$group = DB::table('groups')->where('id',$user->group_id)->first();
+		$slug = $group->slug;
+		$single = false;
+		//echo $slug;
+		if (strpos($slug,'ruangan_') !== false) {
+			$single = true;
+            $id = str_replace("ruangan_", "", $slug);
+            $ruangan = db::table('tbruangan')->where('NamaRuangan' ,'LIKE' ,'%'.$id.'%')->first();
+        }
+        else{
+        	$ruangan = DB::table('tbruangan')->groupBy('NamaRuangan')->get();
+        }
+		
+		return View::make('report.rawat_inap' , array('ruangan' => $ruangan , 'single' => $single));
+	}
+
+	public function rawat_inap_view()
+	{
+		$ruangan = Input::get('ruangan');
+		if($ruangan == "all"){
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->where('StatusPulang', '=' , '0')->where('IdRuangan' , '!=' , '')
+			->orderBy('IdRuangan')->orderBy('tbpasien.Nama')->get();
+		}
+		else{
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->where('StatusPulang', '=' , '0')->where('Ruangan' , '=' , $ruangan)
+			->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->get();
+		}
+		
+		//var_dump($registrasi);
+		return View::make('report.rawat_inap_view' , 
+			array(
+				'pasien' => $pasien,
+				'ruangan' => $ruangan,
+			)
+		);
+	}
+
+	public function rawat_inap_print()
+	{
+		$dari_tanggal = Input::get('dari_tanggal');
+		$sampai_tanggal = Input::get('sampai_tanggal');
+		$ruangan = Input::get('ruangan');
+		if($ruangan == "all"){
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))->where('IdRuangan' , '!=' , '')
+			->orderBy('IdRuangan')->orderBy('tbpasien.Nama')->get();
+		}
+		else{
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))->where('Ruangan' , '=' , $ruangan)
+			->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->get();
+		}
+		
+		//var_dump($registrasi);
+		return View::make('report.rawat_inap_print' , 
+			array(
+				'pasien' => $pasien,
+				'ruangan' => $ruangan,
+				'dari_tanggal' => $dari_tanggal,
+				'sampai_tanggal' => $sampai_tanggal
+			)
+		);
+	}
+
+	public function rawat_inap_excel($mode)
+	{
+		$ruangan = Input::get('ruangan');
+		if($ruangan == "all"){
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->select(['tbpasien.NoRM','Nama','GolPasien','Tanggal','Ruangan'])
+			->where('StatusPulang', '=' , '0')->where('IdRuangan' , '!=' , '')
+			->orderBy('IdRuangan')->orderBy('tbpasien.Nama')->get();
+		}
+		else{
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->select(['tbpasien.NoRM','Nama','GolPasien','Tanggal','Ruangan'])
+			->where('StatusPulang', '=' , '0')->where('Ruangan' , '=' , $ruangan)
+			->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->get();
+		}
+		
+		$title = 'Laporan Pasien Di Ruangan';
+		$colnames = array('No RM', 'Nama', 'Gol Pasien', 'Tanggal', 'Ruangan');
+		$format = array('B' => '0');
+		$summary = 'Jumlah Pasien';
+		$dari_tanggal = '';
+		$sampai_tanggal = '';
+		$this->makeExcel($pasien,$title,$colnames,$format,$mode,$dari_tanggal,$sampai_tanggal,$summary);
+	}
+// end =============================== RAWAT INAP =============================== 
+
+// start ============================= RAWAT UGD =============================== 
+	public function ugd()
+	{	
+		return View::make('report.ugd');
+	}
+
+	public function ugd_view()
+	{
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('dari_tanggal'));
+		$dari_tanggal = $date->format('Y-m-d');
+
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('sampai_tanggal'));
+		$sampai_tanggal = $date->format('Y-m-d');
+
+		$pasien = DB::table('tbpasienugd')->join('tbpasien','tbpasien.NoRM','=','tbpasienugd.NoRM')
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))
+			->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->get();
+		//var_dump($registrasi);
+		return View::make('report.ugd_view' , 
+			array(
+				'pasien' => $pasien,
+				'dari_tanggal' => $dari_tanggal,
+				'sampai_tanggal' => $sampai_tanggal
+			)
+		);
+	}
+
+	public function ugd_excel($mode)
+	{
+		$dari_tanggal = Input::get('dari_tanggal');
+		$sampai_tanggal = Input::get('sampai_tanggal');
+
+		$pasien = DB::table('tbpasienugd')->join('tbpasien','tbpasien.NoRM','=','tbpasienugd.NoRM')
+			->select(['tbpasien.NoRM','Nama','GolPasien','Tanggal'])
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))
+			->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->get();
+		
+		$title = 'Laporan UGD';
+		$colnames = array('No RM', 'Nama', 'Gol Pasien', 'Tanggal');
+		$format = array('B' => '0');
+		$summary = 'Jumlah Pasien';
+		$this->makeExcel($pasien,$title,$colnames,$format,$mode,$dari_tanggal,$sampai_tanggal,$summary);
+	}
+// end =============================== RAWAT UGD =============================== 
+
+// start ============================= PASIEN RUANGAN =============================== 
+	public function pasien_ruangan()
+	{	
+		$user = Auth::user();
+		$group = DB::table('groups')->where('id',$user->group_id)->first();
+		$slug = $group->slug;
+		$single = false;
+		//echo $slug;
+		if (strpos($slug,'ruangan_') !== false) {
+			$single = true;
+            $id = str_replace("ruangan_", "", $slug);
+            $ruangan = db::table('tbruangan')->where('NamaRuangan' ,'LIKE' ,'%'.$id.'%')->first();
+        }
+        else{
+        	$ruangan = DB::table('tbruangan')->groupBy('NamaRuangan')->get();
+        }
+		
+		return View::make('report.rawat_inap' , array('ruangan' => $ruangan , 'single' => $single));
+	}
+// end =============================== PASIEN RUANGAN =============================== 
+
+// start ============================= HEMODIALISA =============================== 
+	public function hemodialisa()
+	{	
+		$ugd = User::find( Auth::user()->id )->ugd;
+		return View::make('report.hemodialisa', array('ugd' => $ugd));
+	}
+// end =============================== HEMODIALISA =============================== 
+
+// start ============================= POLI BULAN =============================== 
+	public function poli_bulan()
+	{
+		$user = Auth::user();
+		$group = DB::table('groups')->where('id',$user->group_id)->first();
+		$slug = $group->slug;
+		$single = false;
+		//echo $slug;
+		if (strpos($slug,'poli_') !== false) {
+			$single = true;
+            $id = str_replace("poli_", "", $slug);
+            $poli = db::table('tbpoli')->where('NamaPoli' ,'LIKE' ,'%'.$id.'%')->first();
+        }
+        else{
+        	$poli = Poli::all();
+        }
+		
+		return View::make('report.poli_bulan' , array('poli' => $poli , 'single' => $single));
+	}
+
+	public function poli_bulan_view()
+	{
+		$poli = Input::get('poli');
+		$lap = LapBulanPoli::where('bulan',intval(Input::get('bulan')))
+			->where('Poli',$poli)
+			->where('tahun', Input::get('tahun'))->get();
+			//print_r($lap);
+		return View::make('report.poli_bulan_view' , array(
+			'lap' => $lap ,
+			'nama_poli' => $poli,
+			'bulan' => Input::get('bulan'),
+			'parent' => url('report/poli_bulan'),
+			'title' => 'Rekap Poli per Bulan',
+			'tahun' => Input::get('tahun')
+		));
+
+	}
+
+	public function poli_bulan_excel($mode='xls')
+	{
+		$poli = Input::get('poli');
+		$lap = LapBulanPoli::where('bulan',intval(Input::get('bulan')))->where('tahun', Input::get('tahun'))->get();
+		return View::make('report.poli_bulan_view' , array(
+			'lap' => $lap ,
+			'nama_poli' => $poli,
+			'parent' => url('report/poli_bulan'),
+			'bulan' => Input::get('bulan'),
+			'tahun' => Input::get('tahun')
+		));
+
+	}
+// end =============================== POLI BULAN =============================== 
+
+// start ============================= MORDIBITAS ===============================
+
+	public function bulan_poli($target){
+		$user = Auth::user();
+		$group = DB::table('groups')->where('id',$user->group_id)->first();
+		$slug = $group->slug;
+		$single = false;
+		//echo $slug;
+		if (strpos($slug,'poli_') !== false) {
+			$single = true;
+            $id = str_replace("poli_", "", $slug);
+            $poli = db::table('tbpoli')->where('NamaPoli' ,'LIKE' ,'%'.$id.'%')->first();
+        }
+        else{
+        	$poli = Poli::all();
+        }
+		
+		return View::make('report.bulan_poli' , array('poli' => $poli ,'target' => $target , 'single' => $single));
+	}
+
+	public function bulan_inap($target){
+		$user = Auth::user();
+		$group = DB::table('groups')->where('id',$user->group_id)->first();
+		$slug = $group->slug;
+		$single = false;
+
+		if (strpos($slug,'ruangan_') !== false) {
+			$single = true;
+            $id = str_replace("ruangan_", "", $slug);
+            $ruangan = db::table('tbruangan')->where('NamaRuangan' ,'LIKE' ,'%'.$id.'%')->first();
+        }
+        else{
+        	$ruangan = DB::table('tbruangan')->groupBy('NamaRuangan')->get();
+        }
+		
+		return View::make('report.bulan_inap' , array('ruangan' => $ruangan , 'single' => $single ,'target' => $target));
+	}
+
+	public function tanggal_inap($target){
+		$user = Auth::user();
+		$group = DB::table('groups')->where('id',$user->group_id)->first();
+		$slug = $group->slug;
+		$single = false;
+
+		if (strpos($slug,'ruangan_') !== false) {
+			$single = true;
+            $id = str_replace("ruangan_", "", $slug);
+            $ruangan = db::table('tbruangan')->where('NamaRuangan' ,'LIKE' ,'%'.$id.'%')->first();
+        }
+        else{
+        	$ruangan = DB::table('tbruangan')->groupBy('NamaRuangan')->get();
+        }
+		
+		return View::make('report.tanggal_inap' , array('ruangan' => $ruangan , 'single' => $single ,'target' => $target));
+	}
+
+	public function tanggal($target){
+		return View::make('report.tanggal' , array('target' => $target));
+	}
+
+	public function bulan($target='penyakit'){
+		$target = 'penyakit';
+		$title = 'Penyakit Teratas';
+		return View::make('report.bulan' , array('target' => $target , 'title' => $title));
+	}
+
+	public function penunjangTanggal($target){
+		return View::make('report.penunjang_tanggal' , array('target' => $target));
+	}
+
+
+	public function morbiditas(){
+		$bulan = Input::get('bulan');
+		$tahun = Input::get('tahun');
+		$poli = Input::get('poli');
+
+		$number = array();
+		for($i=1;$i<=38;$i++){
+			$number[]['text'] = $i;
+		}
+
+		return View::make('report.general' , 
+			array(
+				'parent' => url('report/rawat_jalan'),
+				'pagetitle' => 'Data Keadaan morbiditas', 
+				'title' => array(
+							array('text' => "KESEHATAN DAERAH MILITER V/BRAWIJAYA" ,'align' => 'left'),
+							array('text' => "RUMAH SAKIT TK.II Dr. SOEPRAOEN" ,'align' => 'left'),
+							array('text' => ''),
+							array('text' => 'DATA KEADAAN MORDIBITAS PASIEN RAWAT JALAN RUMAH SAKIT' , 'align' => 'center'),
+							array('text' => 'Klinik : '.$poli , 'align' => 'center'),
+							array('text' => 'Bulan : '.$bulan.' Tahun : '.$tahun , 'align' => 'center')
+				),
+				'table' => array(
+							'class' => 'small_column'
+				),
+				'thead' => array(
+							array(
+								array('text' => 'No Urut DX' , 'rowspan' => 4),
+								array('text' => 'PASIEN MENURUT GOLONGAN' , 'colspan' => 24),
+								array('text' => 'PASIEN KELUAR MENURUT GOL UMUR' , 'colspan' => 8, 'rowspan' => 2),
+								array('text' => 'Jml' , 'rowspan' => 4),
+								array('text' => 'Jumlah Kasus Baru' , 'rowspan' => 2,'colspan' => 3),
+								array('text' => 'Jml Knjngn' , 'rowspan' => 4)
+							),
+							array(
+								array('text' => 'BPJS', 'colspan' => 14),
+								array('text' => 'Um' ,'class' => 'vertical' , 'rowspan' => 3),
+								array('text' => 'KAI' ,'class' => 'vertical' , 'rowspan' => 3),
+								array('text' => 'Gndum' ,'class' => 'vertical' , 'rowspan' => 3),
+								array('text' => 'PG Krbt' ,'class' => 'vertical' , 'rowspan' => 3),
+								array('text' => 'In Health' ,'class' => 'vertical' , 'rowspan' => 3),
+								array('text' => 'Brngn Lf' ,'class' => 'vertical' , 'rowspan' => 3),
+								array('text' => 'Telkom' ,'class' => 'vertical' , 'rowspan' => 3),
+								array('text' => 'Pindad' ,'class' => 'vertical' , 'rowspan' => 3),
+								array('text' => 'Harlend' ,'class' => 'vertical' , 'rowspan' => 3),
+								array('text' => 'Jml' , 'rowspan' => 3),
+							),
+							array(
+								array('text' => 'TNI AD' , 'colspan' => 3),
+								array('text' => 'TNI AL' , 'colspan' => 3),
+								array('text' => 'TNI AU' , 'colspan' => 3),	
+								array('text' => 'Polri' , 'rowspan' => 2,'class' => 'vertical'),	
+								array('text' => 'Ask' , 'rowspan' => 2,'class' => 'vertical'),	
+								array('text' => 'Mask' , 'colspan' => 2),	
+								array('text' => 'Mandiri' , 'rowspan' => 2,'class' => 'vertical'),								
+								array('text' => '0-28'),
+								array('text' => '29HR'),
+								array('text' => '1-4'),
+								array('text' => '5-14'),
+								array('text' => '15-25'),
+								array('text' => '26-44'),
+								array('text' => '45-64'),
+								array('text' => '>65'),
+								array('text' => 'Mnrt Sex' , 'colspan' => 2, 'rowspan' => 1),
+								array('text' => 'Jml' , 'rowspan' => 2),
+							),
+							array(
+								array('text' => 'MIL'),
+								array('text' => 'PNS'),
+								array('text' => 'KEL'),
+								array('text' => 'MIL'),
+								array('text' => 'PNS'),
+								array('text' => 'KEL'),
+								array('text' => 'MIL'),
+								array('text' => 'PNS'),
+								array('text' => 'KEL'),
+								array('text' => 'JKM' ,'class' => 'vertical'),
+								array('text' => 'JKD' ,'class' => 'vertical'),
+								array('text' => 'Hr'),
+								array('text' => '< 1TH'),
+								array('text' => 'TH'),
+								array('text' => 'TH'),
+								array('text' => 'TH'),
+								array('text' => 'TH'),
+								array('text' => 'TH'),
+								array('text' => 'TH'),
+								array('text' => 'LK'),
+								array('text' => 'PR'),
+							),
+							$number
+
+				),
+			)
+		);
+	}
+
+// end =============================== MORDIBITAS ===============================
+
+	public function rincianRawatInap(){
+
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('dari_tanggal'));
+		$dari_tanggal = $date->format('Y-m-d');
+
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('sampai_tanggal'));
+		$sampai_tanggal = $date->format('Y-m-d');
+
+		$ruangan = Input::get('ruangan');
+		if($ruangan == "all"){
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->select('tbpasien.*','tbpasieninap.*' , DB::raw('YEAR(CURDATE()) - YEAR(tbpasien.TanggalLahir) AS umur'))
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))->where('IdRuangan' , '!=' , '')
+			->orderBy('tbpasieninap.Tanggal')->get();
+
+			$k_ruangan = "";
+		}
+		else{
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->select('tbpasien.*','tbpasieninap.*' , DB::raw('YEAR(CURDATE()) - YEAR(tbpasien.TanggalLahir) AS umur'))
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))->where('Ruangan' , '=' , $ruangan)
+			->orderBy('tbpasieninap.Tanggal')->orderBy('tbpasien.Nama')->get();
+
+			$k_ruangan = " RUANGAN ".strtoupper($ruangan);
+		}
+
+		return View::make('report.general' , 
+			array(
+				'parent' => url('report/bulan_inap/rincian_rawat_inap'),
+				'pagetitle' => 'Data Pasien Rawat Inap', 
+				'title' => array(
+							array('text' => "KESEHATAN DAERAH MILITER V/BRAWIJAYA" ,'align' => 'left'),
+							array('text' => "RUMAH SAKIT TK.II Dr. SOEPRAOEN" ,'align' => 'left'),
+							array('text' => ''),
+							array('text' => 'DATA PASIEN INAP '.$k_ruangan.' RUMAH SAKIT' , 'align' => 'center'),
+							array('text' => 'Tanggal : '.$dari_tanggal.' S/D '.$sampai_tanggal , 'align' => 'center')
+				),
+				'table' => array('class' => 'headpadding10 report'),
+				'thead'	=> array(
+							array(
+								array( 'text' => 'No Urut'),
+								array( 'text' => 'No RM'),
+								array( 'text' => 'Nama'),
+								array( 'text' => 'Umur'),
+								array( 'text' => 'Agama'),
+								array( 'text' => 'Jenis Kelamin'),
+								array( 'text' => 'TGL MRS'),
+								array( 'text' => 'Gol'),
+								array( 'text' => 'Sub Gol'),
+								array( 'text' => 'Dirawat di ruang'),
+								array( 'text' => 'Tgl KRS'),
+								array( 'text' => 'Alasan Pulang'),
+								array( 'text' => 'Keterangan Lain')
+							)
+				),
+				'tbody' => array( 
+								array( 'content' => '__NO__'),
+								array( 'content' => 'NoRM'),
+								array( 'content' => 'Nama'),
+								array( 'content' => 'umur'),
+								array( 'content' => 'Agama'),
+								array( 'content' => 'Jkel'),
+								array( 'content' => 'Tanggal'),
+								array( 'content' => 'GolPasien'),
+								array( 'content' => 'SubGolPasien'),
+								array( 'content' => 'Ruangan'),
+								array( 'content' => 'TanggalPulang', 'default' => '-' , 'where' => '0000-00-00'),
+								array( 'content' => 'CaraPulang'),
+								array( 'content' => '-' ,'type' => 'static')
+				),
+				'data' => $pasien,
+				'total' => 'Total Pasien'
+			)
+		);
+	}
+
+// start ============================= SETTING PREF =============================== 
+	public function setPref($pref)
+	{
+		if($pref == 'dinas'){
+			$this->pref = 'di';
+			$this->title = 'Dinas';
+			$this->slug = 'dinas';
+		}
+		else if($pref == 'swasta'){
+			$this->pref = 'sw';
+			$this->title = 'Swasta';
+			$this->slug = 'swasta';
+		}
+		else{
+			$this->pref = 'as';
+			$this->title = 'Askes';
+			$this->slug = 'askes';
+		}
+	}
+// end =============================== SETTING PREF =============================== 
+
+// start ============================= STOK OBAT APOTEK =============================== 
+	public function stokObat($pref='askes')
+	{	
+		$this->setPref($pref);
+		$stok_obat = DB::table($this->pref.'obat')->join($this->pref.'jenisobat', $this->pref.'obat.kodejenis', '=', $this->pref.'jenisobat.kodejenis')
+												  ->orderBy('namaobat','asc')->get();
+		return View::make('report.apotek_stok_obat' ,
+			array(
+				'stok_obat' => $stok_obat,
+				'title' => $this->title,
+				'slug' => $this->slug
+			)
+		);
+	}
+
+	public function stokObat_excel($pref='askes',$mode)
+	{	
+		$this->setPref($pref);
+		$data = DB::table($this->pref.'obat')
+				->join($this->pref.'jenisobat', $this->pref.'obat.kodejenis', '=', $this->pref.'jenisobat.kodejenis')
+				->select(['namaobat', 'komposisi', 'satuan', $this->pref.'jenisobat.namajenis', 'stok', 'harga'])
+				->orderBy('namaobat','asc')->get();
+				
+		$title = 'Laporan Stok Obat Apotek '.$this->title;
+		$colnames = array('Nama Obat', 'Komposisi', 'Satuan', 'Jenis Obat', 'Stok', 'Harga');
+		$format = array('E' => '0','F' => '0');
+		$datestart = '';
+		$dateend = '';
+		$summary = 'Jumlah Obat';
+		$this->makeExcel($data,$title,$colnames,$format,$mode,$datestart,$dateend,$summary);
+			
+	}
+// end =============================== STOK OBAT APOTEK =============================== 
+
+// start ============================= KELUAR MASUK OBAT APOTEK =============================== 
+	public function keluarMasukObat($pref='askes')
+	{	
+		$this->setPref($pref);
+		return View::make('report.apotek_keluar_masuk_obat' , 
+			array(
+				'title' => $this->title,
+				'slug' => $this->slug
+			)
+		);
+	}
+
+	public function keluarMasukObat_view($pref='askes')
+	{
+		$this->setPref($pref);
+
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('dari_tanggal'));
+		$dari_tanggal = $date->format('Y-m-d');
+
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('sampai_tanggal'));
+		$sampai_tanggal = $date->format('Y-m-d');
+
+		$pasien2 = DB::table($this->pref.'lapstok')
+			->join($this->pref.'obat',$this->pref.'obat.kodobat','=',$this->pref.'lapstok.kodobat')
+			->join($this->pref.'jenisobat',$this->pref.'jenisobat.kodejenis','=',$this->pref.'obat.kodejenis')
+			->leftjoin($this->pref.'supplier',$this->pref.'supplier.kodesupp','=',$this->pref.'lapstok.dariuntuk')
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal));
+
+		$trx = Input::get('pilihan_transaksi');
+		
+		if($trx == 1){ //value="1" = Transaksi Obat Masuk
+			$pasien = $pasien2->where('noba' , '!=' , '-')->where('noppm' , '=' , '-')->where('nobp' , '=' , '-')
+							  ->orderBy('tanggal')->get();
+			$subtitle = 'Obat Masuk';
+			$from = 'Dari';
+		}
+		elseif($trx == 2){ //value="2" = Transaksi Obat Keluar
+			$pasien = $pasien2->where('noba' , '-')->where('noppm' , '!=' , '-')->where('nobp' , '!=' , '-')
+							  ->orderBy('tanggal')->get();
+			$subtitle = 'Obat Keluar';
+			$from = 'Untuk';
+		}
+		else{
+			$pasien = $pasien2->orderBy('tanggal')->get();
+			$subtitle = 'Keluar Masuk Obat';
+			$from = 'DariUntuk';
+		}
+
+		return View::make('report.apotek_keluar_masuk_obat_view' , 
+			array(
+				'pasien' => $pasien,
+				'dari_tanggal' => $dari_tanggal,
+				'sampai_tanggal' => $sampai_tanggal,
+				'title' => $this->title,
+				'slug' => $this->slug,
+				'trx' => $trx,
+				'subtitle' => $subtitle,
+				'from' => $from
+			)
+		);
+	}
+
+	public function keluarMasukObat_excel($pref='askes')
+	{
+		$this->setPref($pref);
+
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('dari_tanggal'));
+		$dari_tanggal = $date->format('Y-m-d');
+
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('sampai_tanggal'));
+		$sampai_tanggal = $date->format('Y-m-d');
+
+		$pasien2 = DB::table($this->pref.'lapstok')
+			->join($this->pref.'obat',$this->pref.'obat.kodobat','=',$this->pref.'lapstok.kodobat')
+			->join($this->pref.'jenisobat',$this->pref.'jenisobat.kodejenis','=',$this->pref.'obat.kodejenis')
+			->leftjoin($this->pref.'supplier',$this->pref.'supplier.kodesupp','=',$this->pref.'lapstok.dariuntuk')
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal));
+
+		$trx = Input::get('pilihan_transaksi');
+		
+		if($trx == 1){ //value="1" = Transaksi Obat Masuk
+			$pasien = $pasien2->where('noba' , '!=' , '-')->where('noppm' , '=' , '-')->where('nobp' , '=' , '-')
+							  ->orderBy('tanggal')->get();
+			$subtitle = 'Obat Masuk';
+			$from = 'Dari';
+		}
+		elseif($trx == 2){ //value="2" = Transaksi Obat Keluar
+			$pasien = $pasien2->where('noba' , '-')->where('noppm' , '!=' , '-')->where('nobp' , '!=' , '-')
+							  ->orderBy('tanggal')->get();
+			$subtitle = 'Obat Keluar';
+			$from = 'Untuk';
+		}
+		else{
+			$pasien = $pasien2->orderBy('tanggal')->get();
+			$subtitle = 'Keluar Masuk Obat';
+			$from = 'DariUntuk';
+		}
+
+		return View::make('report.apotek_keluar_masuk_obat_view' , 
+			array(
+				'pasien' => $pasien,
+				'dari_tanggal' => $dari_tanggal,
+				'sampai_tanggal' => $sampai_tanggal,
+				'title' => $this->title,
+				'slug' => $this->slug,
+				'trx' => $trx,
+				'subtitle' => $subtitle,
+				'from' => $from
+			)
+		);
+	}
+// end =============================== KELUAR MASUK OBAT APOTEK =============================== 
+
+// start ============================= LABA RUGI OBAT APOTEK =============================== 
+	public function labaRugiObat($pref='askes')
+	{	
+		$this->setPref($pref);
+		return View::make('report.apotek_laba_rugi_obat' , 
+			array(
+				'title' => $this->title,
+				'slug' => $this->slug
+			)
+		);
+	}
+
+	public function labaRugiObat_view($pref='askes')
+	{
+		$this->setPref($pref);
+		$bulan = Input::get('bulan');
+		$tahun = Input::get('tahun');
+
+		$jual = DB::table($this->pref.'lapstok')
+			->select([
+				  '*', 
+				  DB::raw('SUM(keluar) as output_sum'),
+				  DB::raw('SUM(keluar)*'.$this->pref.'obat.harga as sub_keluar')
+			])
+			->join($this->pref.'obat',$this->pref.'obat.kodobat','=',$this->pref.'lapstok.kodobat')
+			->join($this->pref.'jenisobat',$this->pref.'jenisobat.kodejenis','=',$this->pref.'obat.kodejenis')
+			->where('noba' , '-')->where('noppm' , '!=' , '-')->where('nobp' , '!=' , '-')
+			->where(DB::raw('YEAR(tanggal)'), '=', $tahun)
+			->where(DB::raw('MONTH(tanggal)'), '=', $bulan)
+			->orderBy($this->pref.'obat.namaobat')
+			->groupBy($this->pref.'lapstok.kodobat')->get();
+
+		$beli = DB::table($this->pref.'lapstok')
+			->select([
+				  '*', 
+				  DB::raw('SUM(masuk) as input_sum'), 
+				  DB::raw('SUM(masuk)*'.$this->pref.'obat.hargabeli as sub_masuk')
+			])
+			->join($this->pref.'obat',$this->pref.'obat.kodobat','=',$this->pref.'lapstok.kodobat')
+			->join($this->pref.'jenisobat',$this->pref.'jenisobat.kodejenis','=',$this->pref.'obat.kodejenis')
+			->where('noba' , '!=' , '-')->where('noppm' , '=' , '-')->where('nobp' , '=' , '-')
+			->where(DB::raw('YEAR(tanggal)'), '=', $tahun)
+			->where(DB::raw('MONTH(tanggal)'), '=', $bulan)
+			->orderBy($this->pref.'obat.namaobat')
+			->groupBy($this->pref.'lapstok.kodobat')->get();
+		
+		return View::make('report.apotek_laba_rugi_obat_view' , 
+			array(
+				'jual' => $jual,
+				'beli' => $beli,
+				'nama_bulan' => $this->namaBulan($bulan),
+				'tahun' => $tahun,
+				'title' => $this->title,
+				'slug' => $this->slug
+			)
+		);
+	}
+
+	public function labaRugiObat_excel($pref='askes')
+	{
+		$this->setPref($pref);
+		$bulan = Input::get('bulan');
+		$tahun = Input::get('tahun');
+
+		$jual = DB::table($this->pref.'lapstok')
+			->select([
+				  '*', 
+				  DB::raw('SUM(keluar) as output_sum'),
+				  DB::raw('SUM(keluar)*'.$this->pref.'obat.harga as sub_keluar')
+			])
+			->join($this->pref.'obat',$this->pref.'obat.kodobat','=',$this->pref.'lapstok.kodobat')
+			->join($this->pref.'jenisobat',$this->pref.'jenisobat.kodejenis','=',$this->pref.'obat.kodejenis')
+			->where('noba' , '-')->where('noppm' , '!=' , '-')->where('nobp' , '!=' , '-')
+			->where(DB::raw('YEAR(tanggal)'), '=', $tahun)
+			->where(DB::raw('MONTH(tanggal)'), '=', $bulan)
+			->orderBy($this->pref.'obat.namaobat')
+			->groupBy($this->pref.'lapstok.kodobat')->get();
+
+		$beli = DB::table($this->pref.'lapstok')
+			->select([
+				  '*', 
+				  DB::raw('SUM(masuk) as input_sum'), 
+				  DB::raw('SUM(masuk)*'.$this->pref.'obat.hargabeli as sub_masuk')
+			])
+			->join($this->pref.'obat',$this->pref.'obat.kodobat','=',$this->pref.'lapstok.kodobat')
+			->join($this->pref.'jenisobat',$this->pref.'jenisobat.kodejenis','=',$this->pref.'obat.kodejenis')
+			->where('noba' , '!=' , '-')->where('noppm' , '=' , '-')->where('nobp' , '=' , '-')
+			->where(DB::raw('YEAR(tanggal)'), '=', $tahun)
+			->where(DB::raw('MONTH(tanggal)'), '=', $bulan)
+			->orderBy($this->pref.'obat.namaobat')
+			->groupBy($this->pref.'lapstok.kodobat')->get();
+		
+		return View::make('report.apotek_laba_rugi_obat_view' , 
+			array(
+				'jual' => $jual,
+				'beli' => $beli,
+				'nama_bulan' => $this->namaBulan($bulan),
+				'tahun' => $tahun,
+				'title' => $this->title,
+				'slug' => $this->slug
+			)
+		);
+	}
+// end =============================== LABA RUGI OBAT APOTEK ===============================
+
+//start ============================ RINCIAN OBAT KELUAR ==================================
+
+	public function rincianKeluarObat($pref = 'askes'){
+		$this->setPref($pref);
+		return View::make('report.apotek_rincian_keluar_obat' , 
+			array(
+				'title' => $this->title,
+				'slug' => $this->slug,
+				'obat' => DB::table($this->pref.'obat')->get()			
+			)
+		);
+	}
+
+	public function rincianKeluarObat_view($pref = 'askes'){
+		$this->setPref($pref);
+
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('dari_tanggal'));
+		$dari_tanggal = $date->format('Y-m-d');
+
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('sampai_tanggal'));
+		$sampai_tanggal = $date->format('Y-m-d');
+
+		$kodobat = Input::get('nama_obat');
+
+		$pasien2 = DB::table($this->pref.'lapstok')
+			->join($this->pref.'obat',$this->pref.'obat.kodobat','=',$this->pref.'lapstok.kodobat')
+			->join($this->pref.'jenisobat',$this->pref.'jenisobat.kodejenis','=',$this->pref.'obat.kodejenis')
+			->leftjoin($this->pref.'supplier',$this->pref.'supplier.kodesupp','=',$this->pref.'lapstok.dariuntuk')
+			->where($this->pref.'obat.kodobat' , $kodobat)
+			->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal));
+
+		$obat = DB::table($this->pref.'obat')->where('kodobat',$kodobat)->first();
+
+		$trx = Input::get('pilihan_transaksi');
+		
+		
+		$pasien = $pasien2->where('noba' , '-')->where('noppm' , '!=' , '-')->where('nobp' , '!=' , '-')
+							  ->orderBy('tanggal')->get();
+		$subtitle = 'Rincian Obat Keluar';
+		$from = 'Untuk';
+
+		return View::make('report.apotek_rincian_keluar_obat_view' , 
+			array(
+				'pasien' => $pasien,
+				'dari_tanggal' => $dari_tanggal,
+				'sampai_tanggal' => $sampai_tanggal,
+				'title' => $this->title,
+				'slug' => $this->slug,
+				'trx' => $trx,
+				'subtitle' => $subtitle,
+				'from' => $from,
+				'obat'	=> $obat
+
+			)
+		);
+	}
+
+// start ============================= PENAMAAN BULAN =============================== 
+	public function namaBulan($bulan){
+		switch ($bulan) {
+			case '1' : 	$nama_bulan = "Januari"; 	break;
+			case '2' : 	$nama_bulan = "Februari"; 	break;
+			case '3' : 	$nama_bulan = "Maret"; 		break;
+			case '4' : 	$nama_bulan = "April"; 		break;
+			case '5' : 	$nama_bulan = "Mei"; 		break;
+			case '6' : 	$nama_bulan = "Juni"; 		break;
+			case '7' : 	$nama_bulan = "Juli"; 		break;
+			case '8' : 	$nama_bulan = "Agustus"; 	break;
+			case '9' : 	$nama_bulan = "September"; 	break;
+			case '10' : $nama_bulan = "Oktober"; 	break;
+			case '11' :	$nama_bulan = "November"; 	break;
+			case '12' :	$nama_bulan = "Desember"; 	break;
+		}
+		return $nama_bulan;
+	}
+// end =============================== PENAMAAN BULAN =============================== 
+
+// start ============================= EKSPOR KE EXCEL =============================== 
+/*
+	Function Name 	: makeExcel
+	Descr.			: Export data into Excel
+	Parameter		: $data		: object (The result of query)
+					  $title	: string (Kind of report)
+					  $colnames	: array	 (Column names of data/ data header)
+					  $format	: array	 (Cells format in Excel)
+					  $mode		: string (Type of Excel(2003/2007/csv))
+					  $summary	: string (Label of summary)
+	Return			: File (Excel)
+	Created by		: nanang
+	Updated at		: March 12th, 2015 11:00
+*/
+	public function makeExcel($data,$title,$colnames,$format,$mode,$datestart,$dateend,$summary){
+		//count object of $data to determine the length of cells and first table
+		if($datestart==''){
+			$for_row = count($data)+8;
+			$first_row = 8; //start the data
+			$nama_file = $title;
+		}
+		elseif($datestart!='' && $dateend==''){
+			$for_row = count($data)+10;
+			$first_row = 10; //start the data
+			$nama_file = $title.' (Per Tanggal : '.$datestart.')';
+		}
+		else {
+			$for_row = count($data)+10;
+			$first_row = 10; //start the data
+			$nama_file = $title.' ('.$datestart.' - '.$dateend.')';
+		}
+		//convert object into array
+		$data = array_map(function($object){ return (array) $object; }, $data);
+		//count the number of data header
+		$jumlah = count($colnames)+1;
+		//convert into alphabet for determining the cell merging
+		switch ($jumlah) {
+			case '1' : 	$sel = "A"; 	break;
+			case '2' : 	$sel = "B"; 	break;
+			case '3' : 	$sel = "C"; 	break;
+			case '4' : 	$sel = "D"; 	break;
+			case '5' : 	$sel = "E"; 	break;
+			case '6' : 	$sel = "F"; 	break;
+			case '7' : 	$sel = "G"; 	break;
+			case '8' : 	$sel = "H"; 	break;
+			case '9' : 	$sel = "I"; 	break;
+			case '10' : $sel = "J"; 	break;
+			case '11' : $sel = "K"; 	break;
+			case '12' : $sel = "L"; 	break;
+			case '13' : $sel = "M"; 	break;
+			case '14' : $sel = "N"; 	break;
+			case '15' : $sel = "O"; 	break;
+		}
+		//start creating the file
+		$buat = Excel::create($nama_file, function ($excel) use($data,$for_row,$first_row,$sel,$title,$colnames,$format,$datestart,$dateend,$summary){
+			$excel->sheet('Sheet1', function ($sheet) use($data,$for_row,$first_row,$sel,$title,$colnames,$format,$datestart,$dateend,$summary){
+				//set the cell format, eg.text, number, date, etc
+				$sheet->setColumnFormat($format);
+				// Set top, right, bottom, left of page
+				$sheet->setPageMargin(array(0.5, 0.5, 1.25, 0.5));
+				//$sheet->setOrientation('landscape');
+
+				// cells manipulation methods on row 1
+				$sheet->mergeCells('A1:'.$sel.'1');
+				$sheet->row(1, function ($row) {
+					$row->setFontFamily('Calibri');
+					$row->setFontSize(11);
+				});
+				$sheet->row(1, array('KESEHATAN DAERAH MILITER V/BRAWIJAYA'));
+		
+				// cells manipulation methods on row 3
+				$sheet->mergeCells('A3:'.$sel.'3');
+				$sheet->row(3, function ($row) {
+					$row->setFontFamily('Calibri');
+					$row->setFontSize(15);
+					$row->setFontWeight('bold');
+					$row->setAlignment('center');
+				});
+				$sheet->row(3, array($this->rs_title));
+				
+				// cells manipulation methods on row 4
+				$sheet->mergeCells('A4:'.$sel.'4');
+				$sheet->row(4, function ($row) {
+					$row->setFontFamily('Calibri');
+					$row->setFontSize(15);
+					$row->setAlignment('center');
+				});
+				$sheet->row(4, array('Soepraoen'));
+				
+				// cells manipulation methods on row 6
+				$sheet->mergeCells('A6:'.$sel.'6');
+				$sheet->row(6, function ($row) {
+					$row->setFontFamily('Calibri');
+					$row->setFontSize(12);
+					$row->setFontWeight('bold');
+				});
+				$sheet->row(6, array($title));
+				
+				//swow the start date and end date, if any
+				if($datestart==''){
+					// cells manipulation methods on row 7
+					$sheet->row(7, array(''));
+				}
+				elseif(strpos($dateend,'Tahun') !== false){
+					// cells manipulation methods on row 7
+					$sheet->mergeCells('A7:'.$sel.'7');
+					$sheet->row(7, function ($row) {
+						$row->setFontFamily('Calibri');
+						$row->setFontSize(11);
+					});
+					$sheet->row(7, array($datestart));
+					
+					// cells manipulation methods on row 8
+					$sheet->mergeCells('A8:'.$sel.'8');
+					$sheet->row(8, function ($row) {
+						$row->setFontFamily('Calibri');
+						$row->setFontSize(11);
+					});
+					$sheet->row(8, array($dateend));
+					
+					// cells manipulation methods on row 9
+					$sheet->row(9, array(''));
+				}
+				elseif($datestart!='' && $dateend==''){
+					// cells manipulation methods on row 7
+					$sheet->mergeCells('A7:'.$sel.'7');
+					$sheet->row(7, function ($row) {
+						$row->setFontFamily('Calibri');
+						$row->setFontSize(11);
+					});
+					$sheet->row(7, array('Per Tanggal : '.$datestart));
+					
+					// cells manipulation methods on row 8
+					$sheet->row(8, array(''));
+					
+					// cells manipulation methods on row 9
+					$sheet->row(9, array(''));
+				}
+				else{
+					// cells manipulation methods on row 7
+					$sheet->mergeCells('A7:'.$sel.'7');
+					$sheet->row(7, function ($row) {
+						$row->setFontFamily('Calibri');
+						$row->setFontSize(11);
+					});
+					$sheet->row(7, array('Dari Tanggal : '.$datestart));
+					
+					// cells manipulation methods on row 8
+					$sheet->mergeCells('A8:'.$sel.'8');
+					$sheet->row(8, function ($row) {
+						$row->setFontFamily('Calibri');
+						$row->setFontSize(11);
+					});
+					$sheet->row(8, array('Sampai Tanggal : '.$dateend));
+					
+					// cells manipulation methods on row 9
+					$sheet->row(9, array(''));
+				}
+				
+				// setting column names for data (data header or table header)
+				//$sheet->appendRow(array_keys($users[0])); //to make default data header is from query
+				$no = array('No');
+				$sheet->row($first_row, array_merge($no, $colnames));
+				// Set height for a single row
+				$sheet->setHeight($first_row, 20);
+				// set the last row cell manipulation (before data or table header)
+				$sheet->row($sheet->getHighestRow(), function ($row) {
+					$row->setFontWeight('bold');
+					$row->setFontFamily('Calibri');
+					$row->setFontSize(11);
+				});
+				$sheet->cells('A'.$first_row.':'.$sel.$first_row, function($cells) {
+					$cells->setAlignment('center');
+					$cells->setValignment('center');
+					$cells->setBackground('#cccccc');
+				});
+				
+				// display data as next rows
+				$num = 0;
+				foreach ($data as $d) {
+					$num++;
+					$no = array($num);
+					$sheet->appendRow(array_merge($no, $d));
+				}
+				
+				//set cell of summary data
+				$sheet->mergeCells('A'.($for_row+1).':'.$sel.($for_row+1));
+				$sheet->setHeight(($for_row+1), 20);
+				$sheet->row(($for_row+1), function ($row) {
+					$row->setFontWeight('bold');
+				});
+				$sheet->row(($for_row+1), array($summary.' : '.($num)));
+				$sheet->cells('A'.($for_row+1).':'.$sel.($for_row+1), function($cells) {
+					$cells->setValignment('center');
+					$cells->setBackground('#cccccc');
+				});
+				
+				//set the border of table data
+				$sheet->setBorder('A'.$first_row.':'.$sel.($for_row+1), 'thin');
+				//set the cell manipulation of table data
+				$sheet->cells('A'.$first_row.':'.$sel.($for_row+1), function($cells) {
+					$cells->setFontFamily('Calibri');
+				});
+			});
+			/* if u want more sheet
+			$excel->sheet('Second sheet', function($sheet) {
+				....
+			});
+			*/
+		});
+		
+		return $buat->export($mode);
+		 //->export('xls'); //office < 2007
+		 //->download('xls');
+		 //->export('xlsx');	office 2007
+		 //->download('xlsx');
+		 //->export('csv');
+		 //->download('csv');
+	}
+// end =============================== EKSPOR KE EXCEL =============================== 
+
+
+	// === penunjang
+	public function penunjang($id)
+	{
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('dari_tanggal'));
+		$dari_tanggal = $date->format('Y-m-d');
+
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('sampai_tanggal'));
+		$sampai_tanggal = $date->format('Y-m-d');
+
+		$data = DB::table('tbdetailtindakan')->join('tbpasien' , 'tbdetailtindakan.NoRM' , '=' ,'tbpasien.NoRM')
+				->where('Gol','LIKE' , "%$id%")->whereBetween('TanggalMasuk', array($dari_tanggal,$sampai_tanggal))
+				->groupBy('NoReg')->orderBy('TanggalMasuk','asc')->get();
+
+
+		return View::make('report.penunjang' , array(
+			'dari_tanggal' => $dari_tanggal,
+			'sampai_tanggal' => $sampai_tanggal,
+			'title' => $id,
+			'pasien' => $data
+		));
+	}
+
+
+	// start ============================= OBAT KELUAR APOTEK =============================== 
+	public function obatKeluar($pref='askes')
+	{	
+		$this->setPref($pref);
+		return View::make('report.obat_keluar_apotek' , 
+			array(
+				'title' => $this->title,
+				'slug' => $this->slug,
+			)
+		);
+	}
+
+	public function obatKeluar_view($pref='askes')
+	{
+		$this->setPref($pref);
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('dari_tanggal'));
+		$dari_tanggal = $date->format('Y-m-d');
+
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('sampai_tanggal'));
+		$sampai_tanggal = $date->format('Y-m-d');
+
+		//$pasien = DB::table('tbdetailobat')->leftjoin('tbpasien','tbpasien.NoRM','=','tbdetailobat.NoRM')
+		//	->select([DB::raw('SUM(TotalHarga) as SubTotal'),'tbdetailobat.NoRM','Nama','TanggalMasuk','JenisRawat','GolPasien','NoResep','TanggalResep'])
+		//	->whereBetween('TanggalMasuk', array($dari_tanggal, $sampai_tanggal))->groupby('NoResep')->orderBy('TanggalMasuk')->get();
+/*		
+		$pasien = DB::table('tbdetailobat')
+			->leftjoin('tbpasien','tbpasien.NoRM','=','tbdetailobat.NoRM')
+			->select([
+				DB::raw("case when tbdetailobat.NoResep <> @noresep then tbdetailobat.NoRM else '' end as NoRM"),
+				DB::raw("case when tbdetailobat.NoResep <> @noresep then Nama else '' end as Nama"),
+				DB::raw("case when tbdetailobat.NoResep <> @noresep then TanggalMasuk else '' end as TanggalMasuk"),
+				DB::raw("case when tbdetailobat.NoResep <> @noresep then JenisRawat else '' end as JenisRawat"),
+				DB::raw("case when tbdetailobat.NoResep <> @noresep then GolPasien else '' end as GolPasien"),
+				DB::raw("case when tbdetailobat.NoResep <> @noresep then NoResep else '' end as NoResep"),
+				DB::raw("case when tbdetailobat.NoResep <> @noresep then TanggalResep else '' end as TanggalResep"),
+			 	'NamaObat','Harga','Jumlah','TotalHarga'])
+			->whereBetween('TanggalMasuk', array($dari_tanggal, $sampai_tanggal))->orderBy('TanggalResep','NoResep')->get();
+			//var_dump($pasien);
+		foreach($pasien as $pas => $ien){
+			echo $ien->NoRM.' '.$ien->Nama.' '.$ien->TanggalMasuk.' '.$ien->JenisRawat.' '.$ien->GolPasien.' '.$ien->NoResep.' '.$ien->TanggalResep.' '.$ien->NamaObat.' '.$ien->Harga.' '.$ien->Jumlah.' '.$ien->TotalHarga.'<br />';
+		}
+	*/	
+	
+		$pasien = DB::table('tbdetailobat')
+			->leftjoin('tbpasien','tbpasien.NoRM','=','tbdetailobat.NoRM')
+			->select(['tbdetailobat.NoRM','Nama','TanggalMasuk','JenisRawat','GolPasien','NoResep','TanggalResep','NamaObat','Harga','Jumlah','TotalHarga'])
+			->whereBetween('TanggalResep', array($dari_tanggal, $sampai_tanggal))
+			->Where('Apotek','LIKE', $this->title)
+			->orderBy('TanggalResep','asc')
+			->orderBy('tbdetailobat.NoRM','asc')
+			->orderBy('NoResep','asc')->get();
+  		
+		$nores = '';
+		$sub = '';
+		$sub2 = '';
+		$sub3 = '';
+		$sub4 = '';
+		end($pasien);
+		$lastElementKey = key($pasien)+1;;
+		$no = 0;
+		$num = 0;
+		$nums = '';
+		
+		return View::make('report.obat_keluar_apotek_view' , 
+			array(
+				'pasien' => $pasien,
+				'dari_tanggal' => $dari_tanggal,
+				'sampai_tanggal' => $sampai_tanggal,
+				'dari_tanggal2' => Input::get('dari_tanggal'),
+				'sampai_tanggal2' => Input::get('sampai_tanggal'),
+				'nores' => $nores,
+				'sub' => $sub,
+				'sub2' => $sub2,
+				'sub4' => $sub4,
+				'lastElementKey' => $lastElementKey,
+				'no' => $no,
+				'num' => $num,
+				'title' => $this->title,
+				'slug' => $this->slug
+			)
+		);
+	}
+
+	public function obatKeluar_excel($pref='askes',$mode)
+	{
+		$this->setPref($pref);
+		$dari_tanggal = Input::get('dari_tanggal');
+		$sampai_tanggal = Input::get('sampai_tanggal');
+
+		$date = DateTime::createFromFormat('Y-m-d', $dari_tanggal);
+		$dari_tanggal2 = $date->format('d/m/Y');
+
+		$date = DateTime::createFromFormat('Y-m-d', $sampai_tanggal);
+		$sampai_tanggal2 = $date->format('d/m/Y');
+		
+		$pasien = DB::table('tbdetailobat')
+			->leftjoin('tbpasien','tbpasien.NoRM','=','tbdetailobat.NoRM')
+			->select(['tbdetailobat.NoRM','Nama','TanggalMasuk','JenisRawat','GolPasien','NoResep','TanggalResep','NamaObat','Harga','Jumlah','TotalHarga'])
+			->whereBetween('TanggalResep', array($dari_tanggal, $sampai_tanggal))
+			->Where('Apotek','LIKE', $this->title)
+			->orderBy('TanggalResep','asc')
+			->orderBy('tbdetailobat.NoRM','asc')
+			->orderBy('NoResep','asc')->get();
+  		
+		$objPHPExcel = new PHPExcel();
+		$objPHPExcel->setActiveSheetIndex(0);
+		
+		$objPHPExcel->getActiveSheet()->getProtection()->setPassword('datakreatif');
+		$objPHPExcel->getActiveSheet()->getProtection()->setSheet(true); // This should be enabled in order to enable any of the following!
+		$objPHPExcel->getActiveSheet()->getProtection()->setSort(true);
+		$objPHPExcel->getActiveSheet()->getProtection()->setInsertRows(true);
+		$objPHPExcel->getActiveSheet()->getProtection()->setFormatCells(true);
+		
+		$objPHPExcel->getActiveSheet()->getPageSetup()->setPaperSize(PHPExcel_Worksheet_PageSetup::PAPERSIZE_LEGAL);
+		$objPHPExcel->getActiveSheet()->getPageSetup()->setOrientation(PHPExcel_Worksheet_PageSetup::ORIENTATION_LANDSCAPE);
+		
+		$objPHPExcel->getActiveSheet()->getPageMargins()->setTop(0.5);
+		$objPHPExcel->getActiveSheet()->getPageMargins()->setBottom(0.5);
+		$objPHPExcel->getActiveSheet()->getPageMargins()->setLeft(0.5);
+		$objPHPExcel->getActiveSheet()->getPageMargins()->setRight(1.25);
+		
+		$objPHPExcel->getActiveSheet()->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd(10, 10);
+
+		// Merge cells
+		$objPHPExcel->getActiveSheet()->mergeCells('A1:L1');
+		$objPHPExcel->getActiveSheet()->setCellValue('A1', 'KESEHATAN DAERAH MILITER V/BRAWIJAYA');
+
+		$objPHPExcel->getActiveSheet()->mergeCells('A3:L3');
+		$objPHPExcel->getActiveSheet()->getStyle('A3')->getFont()->setSize(15);
+		$objPHPExcel->getActiveSheet()->getStyle('A3')->getFont()->setBold(true);
+		$objPHPExcel->getActiveSheet()->getStyle('A3')->getAlignment()->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+		$objPHPExcel->getActiveSheet()->setCellValue('A3', $this->rs_title);
+		$objPHPExcel->getActiveSheet()->mergeCells('A4:L4');
+		$objPHPExcel->getActiveSheet()->getStyle('A4')->getFont()->setSize(15);
+		$objPHPExcel->getActiveSheet()->getStyle('A4')->getAlignment()->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+		$objPHPExcel->getActiveSheet()->setCellValue('A4', 'Soepraoen');
+
+		$objPHPExcel->getActiveSheet()->mergeCells('A6:L6');
+		$objPHPExcel->getActiveSheet()->getStyle('A6')->getFont()->setBold(true);
+		$objPHPExcel->getActiveSheet()->setCellValue('A6', 'Laporan Obat Keluar Apotek '.$this->title);
+		$objPHPExcel->getActiveSheet()->mergeCells('A7:L7');
+		$objPHPExcel->getActiveSheet()->setCellValue('A7', 'Dari Tanggal : '.$dari_tanggal2);
+		$objPHPExcel->getActiveSheet()->mergeCells('A8:L8');
+		$objPHPExcel->getActiveSheet()->setCellValue('A8', 'Sampai Tanggal : '.$sampai_tanggal2);
+		$objPHPExcel->getActiveSheet()->getStyle('A6:L8')->getFont()->setSize(12);
+
+		// Header Table
+		$objPHPExcel->setActiveSheetIndex(0)
+			->setCellValue('A10', 'No')
+			->setCellValue('B10', 'No RM')
+			->setCellValue('C10', 'Nama')
+			->setCellValue('D10', 'Tgl. Masuk')
+			->setCellValue('E10', 'Jenis Rawat')
+			->setCellValue('F10', 'Gol. Pasien')
+			->setCellValue('G10', 'No Resep')
+			->setCellValue('H10', 'Tgl. Resep')
+			->setCellValue('I10', 'Nama Obat')
+			->setCellValue('J10', 'Harga')
+			->setCellValue('K10', 'Satuan')
+			->setCellValue('L10', 'Sub Total');
+		
+		$objPHPExcel->getActiveSheet()->getColumnDimension('A')->setAutoSize(true);
+		$objPHPExcel->getActiveSheet()->getColumnDimension('B')->setAutoSize(true);
+		$objPHPExcel->getActiveSheet()->getColumnDimension('C')->setAutoSize(true);
+		$objPHPExcel->getActiveSheet()->getColumnDimension('D')->setAutoSize(true);
+		$objPHPExcel->getActiveSheet()->getColumnDimension('E')->setAutoSize(true);
+		$objPHPExcel->getActiveSheet()->getColumnDimension('F')->setAutoSize(true);
+		$objPHPExcel->getActiveSheet()->getColumnDimension('G')->setAutoSize(true);
+		$objPHPExcel->getActiveSheet()->getColumnDimension('H')->setAutoSize(true);
+		$objPHPExcel->getActiveSheet()->getColumnDimension('I')->setAutoSize(true);
+		$objPHPExcel->getActiveSheet()->getColumnDimension('J')->setAutoSize(true);
+		$objPHPExcel->getActiveSheet()->getColumnDimension('K')->setAutoSize(true);
+		$objPHPExcel->getActiveSheet()->getColumnDimension('L')->setAutoSize(true);
+
+		$objPHPExcel->getActiveSheet()->getRowDimension('10')->setRowHeight(22);
+
+		$objPHPExcel->getActiveSheet()->getStyle('A10:L10')->applyFromArray(
+				array(
+					'font'    => array(
+						'bold'      => true
+					),
+					'alignment' => array(
+						'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
+						'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER,
+					),
+					'borders' => array(
+						'allborders'   => array(
+							'style' => PHPExcel_Style_Border::BORDER_THIN
+						)
+					),
+					'fill' => array(
+						'type'       => PHPExcel_Style_Fill::FILL_GRADIENT_LINEAR,
+						'rotation'   => 90,
+						'startcolor' => array(
+							'argb' => 'FFA0A0A0'
+						),
+						'endcolor'   => array(
+							'argb' => 'FFFFFFFF'
+						)
+					)
+				)
+		);
+		
+		// Protect cells (need a password in any editing worksheet.
+		// Needs to be set to true in order to enable any worksheet protection!
+		//$objPHPExcel->getActiveSheet()->getProtection()->setSheet(true);
+		//$objPHPExcel->getActiveSheet()->protectCells('A3:E13', 'PHPExcel');
+		$nores = '';
+		$sub = '';
+		$sub2 = '';
+		$sub3 = '';
+		$sub4 = '';
+		end($pasien);
+		$lastElementKey = key($pasien)+1;;
+		$no = 0;
+		$num = 0;
+		$nums = '';
+		$norow = 10; //starting the data row
+
+		foreach($pasien as $pas => $ien){
+		$no++;
+		$norow++;
+			if($ien->NoResep==$nores){
+				$objPHPExcel->getActiveSheet()->mergeCells('A'.$norow.':H'.$norow);
+				$objPHPExcel->setActiveSheetIndex(0)
+					->setCellValue('A'.$norow, '')
+					->setCellValue('I'.$norow, $ien->NamaObat)
+					->setCellValue('J'.$norow, $ien->Harga)
+					->setCellValue('K'.$norow, $ien->Jumlah)
+					->setCellValue('L'.$norow, $ien->TotalHarga);
+				$objPHPExcel->getActiveSheet()->getStyle('A'.$norow.':L'.$norow)->applyFromArray(
+					array(
+						'borders' => array(
+							'allborders'     => array(
+								'style' => PHPExcel_Style_Border::BORDER_THIN
+							)
+						)
+					)
+				);
+
+				$sub2 += $sub;
+				$sub4 = $sub2 + $ien->TotalHarga;
+				if($nums!=$num){
+					$norow = $norow+1;
+					$objPHPExcel->getActiveSheet()->mergeCells('A'.$norow.':K'.$norow);
+					$objPHPExcel->setActiveSheetIndex(0)
+						->setCellValue('A'.$norow, 'Total')
+						->setCellValue('L'.$norow, $sub4);
+					$objPHPExcel->getActiveSheet()->getStyle('A'.$norow.':L'.$norow)->applyFromArray(
+						array(
+							'borders' => array(
+								'allborders'     => array(
+									'style' => PHPExcel_Style_Border::BORDER_THIN
+								)
+							)
+						)
+					);
+				}
+			}
+			else{
+				$sub2 += $sub;
+				if($nores != ''){
+					$objPHPExcel->getActiveSheet()->mergeCells('A'.$norow.':K'.$norow);
+					$objPHPExcel->setActiveSheetIndex(0)
+						->setCellValue('A'.$norow, 'Total')
+						->setCellValue('L'.$norow, $sub2);
+					$objPHPExcel->getActiveSheet()->getStyle('A'.$norow.':L'.$norow)->applyFromArray(
+						array(
+							'borders' => array(
+								'allborders'     => array(
+									'style' => PHPExcel_Style_Border::BORDER_THIN
+								)
+							)
+						)
+					);
+					$norow = $norow+1;
+					$objPHPExcel->getActiveSheet()->mergeCells('A'.$norow.':L'.$norow);
+					$objPHPExcel->getActiveSheet()->setCellValue('A'.$norow, '');
+					$norow = $norow+1;
+				}
+				$sub = '';
+				$sub2 = '';
+				$num++;
+				
+				$objPHPExcel->setActiveSheetIndex(0)
+					->setCellValue('A'.$norow, $num)
+					->setCellValue('B'.$norow, $ien->NoRM)
+					->setCellValue('C'.$norow, $ien->Nama)
+					->setCellValue('D'.$norow, $ien->TanggalMasuk)
+					->setCellValue('E'.$norow, $ien->JenisRawat)
+					->setCellValue('F'.$norow, $ien->GolPasien)
+					->setCellValue('G'.$norow, $ien->NoResep)
+					->setCellValue('H'.$norow, $ien->TanggalResep)
+					->setCellValue('I'.$norow, $ien->NamaObat)
+					->setCellValue('J'.$norow, $ien->Harga)
+					->setCellValue('K'.$norow, $ien->Jumlah)
+					->setCellValue('L'.$norow, $ien->TotalHarga);
+					$objPHPExcel->getActiveSheet()->getStyle('A'.$norow.':L'.$norow)->applyFromArray(
+						array(
+							'borders' => array(
+								'allborders'     => array(
+									'style' => PHPExcel_Style_Border::BORDER_THIN
+								)
+							)
+						)
+					);
+			}
+			$nums = $num;
+			$nores = $ien->NoResep;
+			$sub = $ien->TotalHarga;
+			if($lastElementKey == $no){
+				$norow = $norow+1;
+				$objPHPExcel->getActiveSheet()->mergeCells('A'.$norow.':K'.$norow);
+				$objPHPExcel->setActiveSheetIndex(0)
+					->setCellValue('A'.$norow, 'Total')
+					->setCellValue('L'.$norow, $sub + $sub2);
+				$objPHPExcel->getActiveSheet()->getStyle('A'.$norow.':L'.$norow)->applyFromArray(
+					array(
+						'borders' => array(
+							'allborders'     => array(
+								'style' => PHPExcel_Style_Border::BORDER_THIN
+							)
+						)
+					)
+				);
+			}
+			
+		}
+		
+		$norow = $norow+2;
+		$objPHPExcel->getActiveSheet()->mergeCells('A'.$norow.':L'.$norow);
+		$objPHPExcel->setActiveSheetIndex(0)
+			->setCellValue('A'.$norow, 'Jumlah Transaksi : '.$num);
+		$objPHPExcel->getActiveSheet()->getStyle('A'.$norow.':L'.$norow)->applyFromArray(
+			array(
+				'borders' => array(
+					'allborders'     => array(
+						'style' => PHPExcel_Style_Border::BORDER_THIN
+					)
+				)
+			)
+		);
+		
+		// Rename sheet
+		$objPHPExcel->getActiveSheet()->setTitle('Sheet1');
+		// Set active sheet index to the first sheet, so Excel opens this as the first sheet
+		$objPHPExcel->setActiveSheetIndex(0);
+		// Redirect output to a client’s web browser (Excel5)
+		header('Content-Type: application/vnd.ms-excel');
+		if($mode=='Excel5') $eks = 'xls'; else $eks = 'xlsx';
+		$filename = "Lap_Obat_Keluar_(".$dari_tanggal2."-".$sampai_tanggal2.").".$eks;
+		header('Content-Disposition: attachment; filename="'.$filename.'"');
+		header('Cache-Control: max-age=0');
+		//$mode = Excel5 : Ms. Office Excel 2003
+		//		  Excel2007 : Ms. Office Excel 2007
+		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, $mode);
+		$objWriter->save('php://output');
+	}
+
+// end =============================== OBAT KELUAR APOTEK =============================== 
+
+
+	// start ============================= TOP 10 PENYAKIT PASIEN =============================== 
+	public function penyakit()
+	{	
+		$take = Input::get('jumlah');
+		$penyakit = DB::table('tbdetaildiagnosis')->leftjoin('tbdaftardiagnosis', 'tbdetaildiagnosis.IdDiag', '=', 'tbdaftardiagnosis.IdDiag')
+						->select(['tbdetaildiagnosis.IdDiag', 'tbdaftardiagnosis.ShortDiagnoisDesc',
+						'tbdaftardiagnosis.LongDiagnosisDesc', DB::raw('COUNT(tbdetaildiagnosis.IdDiag) AS jumlah')])
+						->groupby('tbdetaildiagnosis.IdDiag')->orderBy('jumlah','desc')->take($take)->get();
+		//var_dump($penyakit);
+		return View::make('report.penyakit_pasien' ,
+			array(
+				'penyakit' => $penyakit,
+				'take' => $take
+			)
+		);
+	}
+
+	public function penyakit_excel($mode)
+	{	
+		$take = Input::get('jumlah');
+		$tahun = Input::get('tahun');
+		$data = DB::table('tbdetaildiagnosis')->leftjoin('tbdaftardiagnosis', 'tbdetaildiagnosis.IdDiag', '=', 'tbdaftardiagnosis.IdDiag')
+						->select(['tbdetaildiagnosis.IdDiag', 'tbdaftardiagnosis.ShortDiagnoisDesc',
+						'tbdaftardiagnosis.LongDiagnosisDesc', DB::raw('COUNT(tbdetaildiagnosis.IdDiag) AS jumlah')])
+						->groupby('tbdetaildiagnosis.IdDiag')->orderBy('jumlah','desc')->take(10)->get();
+				
+		$title = 'Laporan '.$take.' Penyakit Pasien Teratas';
+
+		$colnames = array('Id Diagnosis', 'Nama Dignosis', 'Keterangan', 'Jumlah');
+		$format = array('B' => '0');
+		$datestart = '';
+		$dateend = '';
+		$summary = 'Jumlah Diagnosis';
+		$this->makeExcel($data,$title,$colnames,$format,$mode,$datestart,$dateend,$summary);
+			
+	}
+	// end =============================== TOP 10 PENYAKIT PASIEN =============================== 
+
+
+	// start ================================== UNIT GIZI ===================================== 
+	public function gizi()
+	{	
+		return View::make('report.gizi');
+	}
+
+	public function gizi_view()
+	{	
+		$bulan = Input::get('bulan');
+		$tahun = Input::get('tahun');
+
+		$rekap = DB::table('tbpasieninap')
+				->join('tbpasien', 'tbpasieninap.NoRM', '=', 'tbpasien.NoRM')
+				->leftJoin('tbmasukrs', function($join){
+					$join->on('tbpasieninap.NoRM', '=', 'tbmasukrs.NoRM');
+					$join->on('tbpasieninap.Tanggal', '=', 'tbmasukrs.TglMasuk');
+				})
+				->leftJoin('tbtarifruangan', function($join){
+					$join->on('tbpasien.GolPasien', '=', 'tbtarifruangan.GolPasien');
+					$join->on('tbpasieninap.Kelas', '=', 'tbtarifruangan.Kelas');
+					$join->on('tbpasieninap.IdRuangan', '=', 'tbtarifruangan.IdRuang');
+				})
+				->select(['tbpasieninap.NoRM', 'Nama', 'tbpasien.GolPasien', 'tbpasien.SubGolPasien', 'Ruangan', 'tbpasieninap.Kelas',
+							'NoKamar', 'Tanggal', 'JamMasuk', 'TanggalPulang', 'JamPulang',
+							DB::raw('DATEDIFF(TanggalPulang,Tanggal) AS Lama'), 'tbtarifruangan.BiayaMakan',
+							DB::raw('(DATEDIFF(TanggalPulang,Tanggal) * tbtarifruangan.BiayaMakan) AS total')])
+				->where('StatusPulang',1);
+		
+		if($bulan == 0){
+			if($tahun == 0){
+				$rekapA = '';
+			}
+			else{
+				$rekapA = $rekap->whereRaw('year(Tanggal)='.$tahun);
+			}
+		}
+		elseif($tahun == 0){
+				$rekapA = $rekap->whereRaw('month(Tanggal)='.$bulan);
+		}
+		else{
+				$rekapA = $rekap->whereRaw('month(Tanggal)='.$bulan)
+								->whereRaw('year(Tanggal)='.$tahun);
+		}
+		
+		$rekapB = 	$rekap->orderBy('Tanggal')
+					->orderBy('Nama')
+					->orderBy('tbpasien.GolPasien')
+					->orderBy('tbpasien.SubGolPasien')
+					->orderBy('Ruangan')
+					->orderBy('tbpasieninap.Kelas')
+					->orderBy('NoKamar')
+					->get();
+		
+		if($bulan == 0)
+			$nama_bulan = '';
+		else
+			$nama_bulan = $this->namaBulan($bulan); 
+		
+		$no = 0;				
+		/*var_dump($nama_bulan,$bulan,$tahun,$rekapB);*/
+		return View::make('report.gizi_view' ,
+			array(
+				'rekap' => $rekapB,
+				'bulan' => $bulan,
+				'tahun' => $tahun,
+				'nama_bulan' => $nama_bulan,
+				'no' => $no
+			)
+		); 
+	}
+
+	public function gizi_excel($mode)
+	{	
+		$bulan = Input::get('bulan');
+		$tahun = Input::get('tahun');
+
+		if($bulan == 0)
+			$nama_bulan = '';
+		else
+			$nama_bulan = $this->namaBulan($bulan); 
+		
+		$rekap = DB::table('tbpasieninap')
+				->join('tbpasien', 'tbpasieninap.NoRM', '=', 'tbpasien.NoRM')
+				->leftJoin('tbmasukrs', function($join){
+					$join->on('tbpasieninap.NoRM', '=', 'tbmasukrs.NoRM');
+					$join->on('tbpasieninap.Tanggal', '=', 'tbmasukrs.TglMasuk');
+				})
+				->leftJoin('tbtarifruangan', function($join){
+					$join->on('tbpasien.GolPasien', '=', 'tbtarifruangan.GolPasien');
+					$join->on('tbpasieninap.Kelas', '=', 'tbtarifruangan.Kelas');
+					$join->on('tbpasieninap.IdRuangan', '=', 'tbtarifruangan.IdRuang');
+				})
+				->select(['tbpasieninap.NoRM', 'Nama', 
+							DB::raw('CONCAT(tbpasien.GolPasien, "/ ", tbpasien.SubGolPasien) AS gol_pasien'),
+							'Ruangan',
+							DB::raw('CONCAT(tbpasieninap.Kelas, "/ ", NoKamar) AS kelas_kamar'),
+							'Tanggal', 'JamMasuk', 'TanggalPulang', 'JamPulang',
+							DB::raw('DATEDIFF(TanggalPulang,Tanggal) AS Lama'),
+							'tbtarifruangan.BiayaMakan',
+							DB::raw('(DATEDIFF(TanggalPulang,Tanggal) * tbtarifruangan.BiayaMakan) AS total')])
+				->where('StatusPulang',1);
+		
+		if($bulan == 0){
+			if($tahun == 0){
+				$rekapA = '';
+				$month = '';
+				$year = 'Tahun : Semua Tahun';
+			}
+			else{
+				$rekapA = $rekap->whereRaw('year(Tanggal)='.$tahun);
+				$month = '';
+				$year = 'Tahun : '.$tahun;
+			}
+		}
+		elseif($tahun == 0){
+			$rekapA = $rekap->whereRaw('month(Tanggal)='.$bulan);
+			$month = 'Bulan : '.$nama_bulan;
+			$year = 'Tahun : Semua Tahun';
+		}
+		else{
+			$rekapA = $rekap->whereRaw('month(Tanggal)='.$bulan)
+							->whereRaw('year(Tanggal)='.$tahun);
+			$month = 'Bulan : '.$nama_bulan;
+			$year = 'Tahun : '.$tahun;
+		}
+		
+		$data = $rekap->orderBy('Tanggal')
+					->orderBy('Nama')
+					->orderBy('tbpasien.GolPasien')
+					->orderBy('tbpasien.SubGolPasien')
+					->orderBy('Ruangan')
+					->orderBy('tbpasieninap.Kelas')
+					->orderBy('NoKamar')
+					->get();
+				
+		$title = 'Laporan Unit Gizi';
+ 	 	 	 	 	 	 	 	 	 	 	
+		$colnames = array('No RM', 'Nama', 'Gol Pasien', 'Ruangan', 'Kelas/ No Kamar', 'Tanggal Masuk', 'Jam Masuk', 'Tanggal Keluar', 'Jam Keluar', 'Lama (Hari)', 'Makan/ Hari', 'Total');
+		$format = array('B' => '0');
+		$datestart = $month;
+		$dateend = $year;
+		$summary = 'Jumlah Total Pasien';
+		$this->makeExcel($data,$title,$colnames,$format,$mode,$datestart,$dateend,$summary);
+			
+	}
+
+// start =============================== UNIT GIZI ====================================== 
+
+	// start ============================= KONSUMSI PASIEN =============================== 
+	public function konsumsi()
+	{	
+		$user = Auth::user();
+		$group = DB::table('groups')->where('id',$user->group_id)->first();
+		$slug = $group->slug;
+		$single = false;
+		//echo $slug;
+		if (strpos($slug,'ruangan_') !== false) {
+			$single = true;
+            $id = str_replace("ruangan_", "", $slug);
+            $ruangan = db::table('tbruangan')->where('NamaRuangan' ,'LIKE' ,'%'.$id.'%')->first();
+        }
+        else{
+        	$ruangan = DB::table('tbruangan')->groupBy('NamaRuangan')->get();
+        }
+		
+		return View::make('report.konsumsi' , array('ruangan' => $ruangan , 'single' => $single));
+	}
+
+	public function konsumsi_view()
+	{
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('tanggal'));
+		$tanggal = $date->format('Y-m-d');
+
+		$ruangan = Input::get('ruangan');
+
+		if($ruangan == "all"){
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->where('Tanggal', $tanggal)->where('IdRuangan' , '!=' , '')->where('StatusPulang' , '0')
+			//->orderBy('IdRuangan')->orderBy('tbpasien.Nama')->get();
+			->orderBy('Ruangan')->orderBy('tbpasien.Nama')->orderBy('NoKamar')->get();
+		}
+		else{
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->where('Tanggal', $tanggal)->where('Ruangan' , '=' , $ruangan)->where('StatusPulang' , '0')
+			//->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->get();
+			->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->orderBy('NoKamar')->get();
+		}
+		
+		//var_dump($registrasi);
+		return View::make('report.konsumsi_view' , 
+			array(
+				'pasien' => $pasien,
+				'ruangan' => $ruangan,
+				'tanggal' => $tanggal
+			)
+		);
+	}
+
+	public function konsumsi_print()
+	{
+		$tanggal = Input::get('tanggal');
+		$ruangan = Input::get('ruangan');
+		
+		if($ruangan == "all"){
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->where('Tanggal', $tanggal)->where('IdRuangan' , '!=' , '')->where('StatusPulang' , '0')
+			//->orderBy('IdRuangan')->orderBy('tbpasien.Nama')->get();
+			->orderBy('Ruangan')->orderBy('tbpasien.Nama')->orderBy('NoKamar')->get();
+		}
+		else{
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->where('Tanggal', $tanggal)->where('Ruangan' , '=' , $ruangan)->where('StatusPulang' , '0')
+			//->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->get();
+			->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->orderBy('NoKamar')->get();
+		}
+		
+		//var_dump($registrasi);
+		return View::make('report.konsumsi_print' , 
+			array(
+				'pasien' => $pasien,
+				'ruangan' => $ruangan,
+				'tanggal' => $tanggal
+			)
+		);
+	}
+
+	public function konsumsi_excel($mode)
+	{
+		$tanggal = Input::get('tanggal');
+		$ruangan = Input::get('ruangan');
+		$sampai_tanggal = '';
+		
+		if($ruangan == "all"){
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->select(['tbpasien.NoRM','Nama','GolPasien','Ruangan','Kelas','Tanggal'])
+			->where('Tanggal', $tanggal)->where('IdRuangan' , '!=' , '')->where('StatusPulang' , '0')
+			->orderBy('Ruangan')->orderBy('tbpasien.Nama')->orderBy('NoKamar')->get();
+		}
+		else{
+			$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+			->select(['tbpasien.NoRM','Nama','GolPasien','Ruangan','Kelas','Tanggal'])
+			->where('Tanggal', $tanggal)->where('Ruangan' , '=' , $ruangan)->where('StatusPulang' , '0')
+			->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->orderBy('NoKamar')->get();
+		}
+		
+		$title = 'Kebutuhan Jumlah Makan Pasien';
+		$colnames = array('No RM', 'Nama', 'Gol Pasien', 'Ruangan', 'Kelas', 'Tanggal Masuk');
+		$format = array('B' => '0');
+		$summary = 'Jumlah Pasien';
+		$this->makeExcel($pasien,$title,$colnames,$format,$mode,$tanggal,$sampai_tanggal,$summary);
+	}
+// end =============================== KONSUMSI PASIEN ===============================
+
+
+	// Rekap Golongan
+	public function rekap_golongan(){
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('dari_tanggal'));
+		$dari_tanggal = $date->format('Y-m-d');
+
+		$date = DateTime::createFromFormat('d/m/Y', Input::get('sampai_tanggal'));
+		$sampai_tanggal = $date->format('Y-m-d');
+
+		$jenis_pelayanan = Input::get('jenis_pelayanan');
+		if($jenis_pelayanan == 'rawat_inap'){
+			$ruangan = Input::get('ruangan');
+			if($ruangan == "all"){
+				$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+				->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))->where('IdRuangan' , '!=' , '')
+				->orderBy('IdRuangan')->orderBy('tbpasien.Nama')->get();
+
+				$k_ruangan = "";
+			}
+			else{
+				$pasien = DB::table('tbpasieninap')->join('tbpasien','tbpasien.NoRM','=','tbpasieninap.NoRM')
+				->whereBetween('tanggal', array($dari_tanggal, $sampai_tanggal))->where('Ruangan' , '=' , $ruangan)
+				->orderBy('tbpasien.GolPasien')->orderBy('tbpasien.Nama')->get();
+
+				$k_ruangan = ' RUANGAN '.strtoupper($ruangan);
+			}
+
+			return View::make('report.rekap_golongan' , 
+			array(
+				'pasien' => $pasien,
+				'ruangan' => $ruangan,
+				'dari_tanggal' => $dari_tanggal,
+				'sampai_tanggal' => $sampai_tanggal,
+				'parent' => url('report/tanggal_inap/rekap_golongan'),
+				'title' => 'Rekap Golongan Rawat Inap',
+				'subtitle' => 'REKAPITULASI DARI TANGGAL '.Input::get('dari_tanggal').' S/D '.Input::get('sampai_tanggal').$k_ruangan
+			)
+		);
+		}
+	} 
+}

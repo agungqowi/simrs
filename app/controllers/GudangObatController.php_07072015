@@ -1,0 +1,226 @@
+<?php
+
+class GudangObatController extends \BaseController {
+
+	public $pref = "beli";
+    public $database = "gudangpembelian";
+	public $title = 'Pembelian';
+	public $slug = 'beli';
+	/**
+	 * Display a listing of the resource.
+	 *
+	 * @return Response
+	 */
+	public function index($pref='beli')
+	{
+		$this->setPref($pref);
+		return View::make('gudang.general.obat.list', array(
+			'pref' => $this->pref,
+			'title' => $this->title,
+			'slug' => $this->slug
+		));
+	}
+
+	public function setPref($pref)
+	{
+		if($pref == 'beli'){
+			$this->pref = '';
+			$this->title = 'Pembelian';
+			$this->slug = 'beli';
+            $this->database = 'gudangpembelian';
+		}
+		else{
+			$this->pref = '';
+			$this->title = 'Dropping';
+			$this->slug = 'dropping';
+            $this->database = 'gudangdropping';
+		}
+	}
+
+	/**
+	 * @param void
+	 * @return array
+	 */
+	public function datatable($pref='dropping')
+	{
+		$this->setPref($pref);
+		$perawat = DB::connection($this->database)->table($this->pref.'obat')->join($this->pref.'gudang', $this->pref.'obat.kodegudang', '=', $this->pref.'gudang.kodegudang');
+		return Datatable::query($perawat)
+			->addColumn('kodobat',function($model)
+        	{
+            	//return '<a href="'.url('apotek_obat/'.$model->kodobat.'/edit').'">'.$model->kodobat.'</a>';
+            	return $model->kodobat;
+        	})
+			->showColumns('kodegudang','namaobat','komposisi','satuan','stok')
+			->addColumn('harga' , function($model)
+			{
+				return number_format($model->harga);
+			})
+			->addColumn('actions',function($model)
+        	{
+            	return '<a href="'.url('gudang_obat/'.$model->kodobat.'/edit').'"><i class="splashy-document_letter_edit"></i></a>&nbsp;&nbsp;'.
+            	'<a href="javascript:void(0)" onclick="hapus_data('."'".$model->kodobat."','Obat askes'".')"><i class="splashy-gem_remove"></i></a>';
+        	})
+			->searchColumns('kodobat','namaobat','stok')
+			->orderColumns('kodobat','namaobat','stok')->make();
+	}
+
+	/**
+	 * @param void
+	 * @return array
+	 */
+	public function editdatatable($pref='dropping')
+	{
+		$this->setPref($pref);
+		$perawat = DB::connection($this->database)->table($this->pref.'obat')->join($this->pref.'gudang', $this->pref.'obat.kodegudang', '=', $this->pref.'gudang.kodegudang');
+		return Datatable::query($perawat)
+			->addColumn('pilih',function($model)
+        	{
+            	return '<a class="btn" onclick="pilih_obat('.
+            				"'".$model->kodobat."',".
+            				"'".$model->namaobat."',".
+            				"'".$model->harga."'".
+            			')" href="#">Pilih</a>';
+        	})
+			->showColumns('kodobat','namaobat','komposisi','satuan','kodegudang' , 'harga')
+			->searchColumns('kodobat','namaobat','kodegudang')
+			->orderColumns('kodobat','namaobat','kodegudang')->make();
+	}
+
+	/**
+	 * @param void
+	 * @return array
+	 */
+	public function detaildatatable($pref='dropping')
+	{
+		$this->setPref($pref);
+		$perawat = DB::connection($this->database)->table($this->pref.'obat')->join($this->pref.'gudang', $this->pref.'obat.kodegudang', '=', $this->pref.'gudang.kodegudang');
+		return Datatable::query($perawat)
+			->addColumn('pilih',function($model)
+        	{
+            	return '<a class="btn" onclick="pilih_obat('.
+            				"'".$model->kodobat."',".
+            				"'".$model->namaobat."',".
+            				"'".$model->kodegudang."',".
+            				"'".$model->komposisi."',".
+            				"'".$model->satuan."',".
+							"'".date( "d/m/Y", strtotime($model->masa))."',".
+            				"'".$model->stok."',".
+            				"'".$model->harga."',".
+            				"'".$model->hargabeli."'".
+            			')" href="#">Pilih</a>';
+        	})
+        	->addColumn('kodobat',function($model)
+        	{
+            	return '<a onclick="pilih_obat('.
+            				"'".$model->kodobat."',".
+            				"'".$model->namaobat."',".
+            				"'".$model->kodegudang."',".
+            				"'".$model->komposisi."',".
+            				"'".$model->satuan."',".
+							"'".date( "d/m/Y", strtotime($model->masa))."',".
+            				"'".$model->stok."',".
+            				"'".$model->harga."',".
+            				"'".$model->hargabeli."'".
+            			')" href="#">'.$model->kodobat.'</a>';
+        	})
+        	->addColumn('namaobat',function($model)
+        	{
+            	return '<a onclick="pilih_obat('.
+            				"'".$model->kodobat."',".
+            				"'".$model->namaobat."',".
+            				"'".$model->kodegudang."',".
+            				"'".$model->komposisi."',".
+            				"'".$model->satuan."',".
+							"'".date( "d/m/Y", strtotime($model->masa))."',".
+            				"'".$model->stok."',".
+            				"'".$model->harga."',".
+            				"'".$model->hargabeli."'".
+            			')" href="#">'.$model->namaobat.'</a>';
+        	})
+        	->addColumn('komposisi',function($model)
+        	{
+            	return '<a onclick="pilih_obat('.
+            				"'".$model->kodobat."',".
+            				"'".$model->namaobat."',".
+            				"'".$model->kodegudang."',".
+            				"'".$model->komposisi."',".
+            				"'".$model->satuan."',".
+							"'".date( "d/m/Y", strtotime($model->masa))."',".
+            				"'".$model->stok."',".
+            				"'".$model->harga."',".
+            				"'".$model->hargabeli."'".
+            			')" href="#">'.$model->komposisi.'</a>';
+        	})
+        	->addColumn('satuan',function($model)
+        	{
+            	return '<a onclick="pilih_obat('.
+            				"'".$model->kodobat."',".
+            				"'".$model->namaobat."',".
+            				"'".$model->kodegudang."',".
+            				"'".$model->komposisi."',".
+            				"'".$model->satuan."',".
+							"'".date( "d/m/Y", strtotime($model->masa))."',".
+            				"'".$model->stok."',".
+            				"'".$model->harga."',".
+            				"'".$model->hargabeli."'".
+            			')" href="#">'.$model->satuan.'</a>';
+        	})
+            ->addColumn('namagudang',function($model)
+            {
+                return '<a onclick="pilih_obat('.
+            				"'".$model->kodobat."',".
+            				"'".$model->namaobat."',".
+            				"'".$model->kodegudang."',".
+            				"'".$model->komposisi."',".
+            				"'".$model->satuan."',".
+							"'".date( "d/m/Y", strtotime($model->masa))."',".
+            				"'".$model->stok."',".
+            				"'".$model->harga."',".
+            				"'".$model->hargabeli."'".
+                        ')" href="#">'.$model->namagudang.'</a>';
+            })
+        	->addColumn('stok',function($model)
+        	{
+            	return '<a onclick="pilih_obat('.
+            				"'".$model->kodobat."',".
+            				"'".$model->namaobat."',".
+            				"'".$model->kodegudang."',".
+            				"'".$model->komposisi."',".
+            				"'".$model->satuan."',".
+							"'".date( "d/m/Y", strtotime($model->masa))."',".
+            				"'".$model->stok."',".
+            				"'".$model->harga."',".
+            				"'".$model->hargabeli."'".
+            			')" href="#">'.$model->stok.'</a>';
+        	})
+        	->addColumn('harga',function($model)
+        	{
+            	return '<a onclick="pilih_obat('.
+            				"'".$model->kodobat."',".
+            				"'".$model->namaobat."',".
+            				"'".$model->kodegudang."',".
+            				"'".$model->komposisi."',".
+            				"'".$model->satuan."',".
+							"'".date( "d/m/Y", strtotime($model->masa))."',".
+            				"'".$model->stok."',".
+            				"'".$model->harga."',".
+            				"'".$model->hargabeli."'".
+            			')" href="#">'.number_format($model->harga).'</a>';
+        	})
+			->searchColumns('kodobat','namaobat')
+			->orderColumns('kodobat','namaobat')->make();
+	}
+
+
+	public function last_id($pref='dropping'){
+		$this->setPref($pref);
+		$last = DB::connection($this->database)->table($this->pref.'obat')->orderBy('kodobat','desc')->first();
+		$lastid = intval($last->kodobat) + 1;
+		echo $lastid;
+	}
+
+
+
+
+}

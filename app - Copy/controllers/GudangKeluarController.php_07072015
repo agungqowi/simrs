@@ -1,0 +1,305 @@
+<?php
+
+class GudangKeluarController extends \BaseController {
+
+	public $pref = "";
+    public $database = "gudangpembelian";
+	public $title = 'Pembelian';
+	public $slug = 'beli';
+	/**
+	 * Display a listing of the resource.
+	 *
+	 * @return Response
+	 */
+	public function index($pref='askes')
+	{
+		$this->setPref($pref);
+
+		$pelanggan = DB::connection($this->database)->table($this->pref.'pelanggan')->get();
+		return View::make('gudang.general.transaksi.create' , array(
+			'pref' => $this->pref,
+			'title' => $this->title,
+			'pelanggan' => $pelanggan,
+			'slug' => $this->slug
+		));
+	}
+
+	public function setPref($pref)
+	{
+		if($pref == 'beli'){
+			$this->pref = '';
+			$this->title = 'Pembelian';
+			$this->slug = 'beli';
+            $this->database = 'gudangpembelian';
+		}
+		else{
+			$this->pref = '';
+			$this->title = 'Dropping';
+			$this->slug = 'dropping';
+            $this->database = 'gudangdropping';
+		}
+	}
+
+	/**
+	 * @param void
+	 * @return array
+	 */
+	public function datatable($pref="beli")
+	{
+		$this->setPref($pref);
+		$perawat = DB::connection($this->database)->table($this->pref.'transaksi');
+		return Datatable::query($perawat)
+			->addColumn('kodobat',function($model)
+        	{
+            	return '<a href="'.url('gudang_obat/'.$model->kodobat.'/edit').'">'.$model->kodobat.'</a>';
+        	})
+			->showColumns('namaobat','komposisi','satuan', 'stok','harga')
+			->addColumn('actions',function($model)
+        	{
+            	return '<a href="'.url('gudang_obat/'.$model->kodobat.'/edit').'"><i class="splashy-document_letter_edit"></i></a>&nbsp;&nbsp;'.
+            	'<a href="javascript:void(0)" onclick="hapus_data('."'".$model->kodobat."','Obat askes'".')"><i class="splashy-gem_remove"></i></a>';
+        	})
+			->searchColumns('kodobat','namaobat','stok')
+			->orderColumns('kodobat','namaobat','stok')->make();
+	}
+
+	public function tambah_transaksi($pref='askes')
+	{
+		$this->setPref($pref);
+		$rules = array(
+			'id_obat'    	=> 'required|min:1', 
+			'pelanggan'    	=> 'required|min:1', 
+			'jumlah'    	=> 'required|min:1', 
+			'harga'    		=> 'required|min:1', 
+			'harga_beli'    => 'required|min:1', 
+			'total'    		=> 'required|min:1', 
+			'no_bukti'    	=> 'required|integer', 
+		);
+
+		// run the validation rules on the inputs from the form
+		$validator = Validator::make(Input::all(), $rules);
+		if ($validator->fails()) {
+			$messages = $validator->messages();
+			foreach ($messages->all() as $message) 
+			{
+				echo $message;
+			}
+			
+		} else { 
+			$jumlah = intval(Input::get('jumlah'));
+			$stok = Input::get('stok');
+			if( $stok >=  $jumlah){
+				$pesanan = DB::connection($this->database)->table($this->pref.'pesanan')->orderBy('keluarid','desc')->first();
+				if($pesanan){
+					$keluar_id = intval($pesanan->keluarid);
+					$keluar_id++;
+				}
+				else{
+					$keluar_id = 1;
+				}
+
+				$resep = DateTime::createFromFormat('d/m/Y', Input::get('tanggal_bukti'));
+
+				DB::connection($this->database)->table($this->pref.'pesanan')->insert(
+					array( 'keluarid' => $keluar_id , 'nofak' => Input::get('no_bukti') , 'tglfak' =>  $resep->format('Y-m-d'),
+							'nomorbp' => Input::get('no_bukti') , 'kodeplg' => Input::get('pelanggan')
+					)
+				);
+
+				
+				DB::connection($this->database)->table($this->pref.'transaksi')->insert(
+					array(
+						'keluarid' =>  $keluar_id,
+						'nofak' => Input::get('no_bukti'),
+						'kodobat' => Input::get('id_obat'),
+						'jumlah' => Input::get('jumlah'),
+						'terbilang' => $this->terbilang( Input::get('jumlah') )
+					)
+				);
+
+				$new_stok = Input::get('stok') - $jumlah;
+				$obat = DB::connection($this->database)->table($this->pref.'obat')->where('kodobat', Input::get('id_obat') )->update(array('stok' => $new_stok));
+
+				$laporan = DB::connection($this->database)->table($this->pref.'lapstok')->orderBy('no','desc')->first();
+				if($laporan){
+					$next = intval($laporan->no);
+					$next++;
+				}
+				else{
+					$next = 1;
+				}
+				DB::connection($this->database)->table($this->pref.'lapstok')->insert(
+					array('no' => $next, 'kodobat' => Input::get('id_obat') , 'noba' => '-' , 'noppm' => Input::get('no_bukti') ,
+						'nobp' => Input::get('no_bukti') , 'dariuntuk' => Input::get('nama_lengkap') , 'masuk' => '0' ,
+						'keluar' => $jumlah , 'sisa' => $new_stok , 'tanggal' => $resep->format('Y-m-d')
+					)
+				);
+				
+			
+// ===============================
+/* check active db
+if(DB::connection()->getDatabaseName())
+{
+   echo "conncted sucessfully to database ".DB::connection()->getDatabaseName();
+}
+*/
+				if( Input::get('pelanggan') == 'P-DEPO3') $this->prep = 'as';
+				else $this->prep = 'di';
+				
+				$ada_obat = DB::connection()->table($this->prep.'obat2')->where('idobatgudang', Input::get('id_obat') )->first();
+				
+				if($ada_obat){
+					$id_obat = Input::get('id_obat');
+					$stok_baru = $ada_obat->stok + $jumlah;		
+					$coba1 = DB::connection()->table($this->prep.'obat2')->where('idobatgudang', $ada_obat->idobatgudang )->update(
+						array('stok' => $stok_baru , 'harga' => Input::get('harga'), 'hargabeli' => Input::get('harga_beli') )
+					);
+				}
+			 	else{
+					$cek_kode_obat = DB::connection()->table($this->prep.'obat2')->orderBy('kodobat', 'desc')->first();
+					$id_baru = intval($cek_kode_obat->kodobat);
+					$id_baru++;
+					$kadaluarsa = DateTime::createFromFormat('d/m/Y', Input::get('masa'));
+					
+					$insert_obat = DB::connection()->table($this->prep.'obat2')->insert(
+						array(
+							'kodobat' => $id_baru,
+							'idobatgudang' => Input::get('id_obat'),
+							'kodejenis' => Input::get('jenis_obat'),
+							'namaobat' => Input::get('nama_obat'),
+							'komposisi' => Input::get('komposisi'),
+							'satuan' => Input::get('satuan'),
+							'harga' => Input::get('harga'),
+							'hargabeli' => Input::get('harga_beli'),
+							'masa' => $kadaluarsa->format('Y-m-d'),
+							'stok' => $jumlah
+						)
+					);
+					
+					
+					$id_obat = $id_baru;
+					$stok_baru = $jumlah; 
+				}
+			
+				$masuk = DB::connection()->table($this->prep.'masuk')->orderBy('masukid','desc')->first();
+				if($masuk){
+					$masuk_id = intval($masuk->masukid);
+					$masuk_id++;
+				}
+				else{
+					$masuk_id = 1;
+				}
+
+				DB::connection()->table($this->prep.'masuk')->insert(
+					array(	'masukid' => $masuk_id , 'tglnota' => $resep->format('Y-m-d') , 
+							'kodesupp' => 'GUDANG' , 'nomorba' => Input::get('no_bukti'))
+				);
+
+				$laporan = DB::connection()->table($this->prep.'lapstok')->orderBy('no','desc')->first();
+				if($laporan){
+					$next = intval($laporan->no);
+					$next++;
+				}
+				else{
+					$next = 1;
+				}
+				
+				$columns = Schema::getColumnListing($this->prep.'lapstok');
+				$idgudang = false;
+				foreach($columns as $c){
+					if($c == 'idobatgudang')
+						$idgudang = true;
+				}
+				if ($idgudang){
+					DB::connection()->table($this->prep.'lapstok')->insert(
+						array('no' => $next, 'kodobat' => $id_obat , 'noba' => Input::get('no_bukti') , 'noppm' => '-' ,
+							'nobp' => '-' , 'dariuntuk' => 'GUDANG' , 'keluar' => '0' , 'idobatgudang' => $id_obat,
+							'masuk' => $jumlah , 'sisa' => $stok_baru , 'tanggal' => $resep->format('Y-m-d')
+						)
+					);
+				}
+				else{
+					DB::connection()->table($this->prep.'lapstok')->insert(
+						array('no' => $next, 'kodobat' => $id_obat , 'noba' => Input::get('no_bukti') , 'noppm' => '-' ,
+							'nobp' => '-' , 'dariuntuk' => 'GUDANG' , 'keluar' => '0' ,
+							'masuk' => $jumlah , 'sisa' => $stok_baru , 'tanggal' => $resep->format('Y-m-d')
+						)
+					);
+				}
+				
+			
+// ===============================  */
+				
+				echo 'sukses';
+			}
+			else{
+				echo 'Stok tidak mencukupi';
+			}
+		}
+	}
+
+	public function list_transaksi($pref,$id)
+	{
+		$no_bukti = Input::get('no_bukti');
+		$data = DB::connection($this->database)->table($this->pref.'lapstok')
+						->join($this->pref.'obat',$this->pref.'lapstok.kodobat' ,'=' ,$this->pref.'obat.kodobat')
+						->where('nobp','=' ,$id)->get();
+		return $data;
+	}
+
+	public function check_transaksi($pref = 'askes')
+	{
+		$jumlah = Input::get('jumlah');
+		$kodeobat = Input::get('id_obat');
+		$noreg = Input::get('no_reg');
+		$data = DB::connection($this->database)->table('tbdetailobat')->where('NoReg','=',$noreg)
+				->where('IdObat' , $kodeobat)->where('Jumlah',$jumlah)->get();
+
+		if($data)
+			return 'ada';
+		else
+			return 'kosong';
+	}
+
+	public function hapus_transaksi($pref='askes')
+	{
+		$this->setPref($pref);
+		$no = Input::get('no');
+		$noba = Input::get('noba');
+		$select = DB::connection($this->database)->table($this->pref.'lapstok')->where('no' , '=' , $no)->where('nobp' , '=' , $noba)->get();
+		$j = 0;
+		foreach($select as $s){
+			$obat = DB::connection($this->database)->table($this->pref.'obat')->where('kodobat', $s->kodobat )->first();
+			$new_stok = $obat->stok + $s->keluar;
+			$k=DB::connection($this->database)->table($this->pref.'obat')->where('kodobat', $s->kodobat )->update(array('stok' => $new_stok));
+			$j++;
+		}
+		$data = DB::connection($this->database)->table($this->pref.'lapstok')->where('no' , '=' , $no)->where('nobp' , '=' , $noba)->delete();
+		return $j;
+	}
+
+	public function terbilang($x)
+	{
+	  	$abil = array("", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas");
+	  	if ($x < 12)
+	    	return " " . $abil[$x];
+	  	elseif ($x < 20)
+	    	return $this->terbilang($x - 10) . "belas";
+	  	elseif ($x < 100)
+	    	return $this->terbilang($x / 10) . " puluh" . $this->terbilang($x % 10);
+	  	elseif ($x < 200)
+	    	return " seratus" . $this->terbilang($x - 100);
+	  	elseif ($x < 1000)
+	   		return $this->terbilang($x / 100) . " ratus" . $this->terbilang($x % 100);
+	  	elseif ($x < 2000)
+	    	return " seribu" . $this->terbilang($x - 1000);
+	  	elseif ($x < 1000000)
+	    	return $this->terbilang($x / 1000) . " ribu" . $this->terbilang($x % 1000);
+	  	elseif ($x < 1000000000)
+	    	return $this->terbilang($x / 1000000) . " juta" . $this->terbilang($x % 1000000);
+	}
+
+
+
+
+}

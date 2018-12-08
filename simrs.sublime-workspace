@@ -1,0 +1,239 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/C/xampp/htdocs/simrs",
+		"/C/xampp/htdocs/simrs/vendor",
+		"/C/xampp/htdocs/simrs/vendor/laravel",
+		"/C/xampp/htdocs/simrs/vendor/laravel/framework",
+		"/C/xampp/htdocs/simrs/vendor/laravel/framework/src"
+	],
+	"file_history":
+	[
+		"/C/xampp/htdocs/simrs/vendor/laravel/framework/src/Illuminate/Foundation/Console/Optimize/config.php",
+		"/C/xampp/htdocs/simrs/app/controllers/GiziController.php",
+		"/C/xampp/htdocs/simrs/artisan",
+		"/C/xampp/htdocs/simrs/app/views/unit/icu.blade.php",
+		"/C/xampp/htdocs/simrs/app/views/unit/ok.blade.php",
+		"/C/xampp/htdocs/simrs/app/views/header.blade.php",
+		"/C/xampp/htdocs/gis_drainase_rev04/application/controllers/Drainase.php",
+		"/C/xampp/htdocs/simrs/app/config/database.php",
+		"/C/xampp/htdocs/simrs/obat.csv",
+		"/C/xampp/htdocs/gis_drainase_rev04/application/views/drainase/index.php",
+		"/C/xampp/htdocs/gis_drainase_rev04/application/views/header.php",
+		"/C/xampp/htdocs/gis_drainase_rev04/application/views/layout.php",
+		"/C/existing_project/sim_rs/lis_rsud",
+		"/C/existing_project/sim_rs/data_aswar/doble_rm_excel.csv",
+		"/C/existing_project/sim_rs/data_aswar/7604012_20180813_MIX(RI).TXT",
+		"/C/2018_kota_blitar/02_drainase/web/setting_web_dll",
+		"/C/existing_project/sim_rs/data_aswar/7604012_20180813_MIX(RJ).TXT",
+		"/C/xampp/htdocs/gis_drainase_rev04/application/views/drainase/show.php",
+		"/C/xampp/htdocs/gis_drainase_rev04/application/config/database.php",
+		"/C/xampp/htdocs/gis_drainase_rev04/application/models/Kerusakan_drainase_model.php",
+		"/C/xampp/htdocs/gis_drainase_rev04/application/controllers/Kerusakan_drainase.php",
+		"/C/xampp/htdocs/gis_drainase_rev04/application/views/kerusakan_drainase/index.php",
+		"/C/2018_kota_blitar/02_drainase/web/revisi_04/Revisi 4/schecma1.htm",
+		"/C/xampp/htdocs/gis_drainase/application/views/layout.php",
+		"/C/xampp/htdocs/gis_drainase/application/views/drainase/index.php",
+		"/C/xampp/htdocs/gis_drainase/application/views/drainase/_filter.php",
+		"/C/xampp/htdocs/gis_drainase/application/controllers/M_group.php",
+		"/C/xampp/htdocs/gis_drainase/application/controllers/Drainase.php",
+		"/C/xampp/htdocs/gis_drainase/application/views/data_map_kepanjen_kidul.php",
+		"/C/xampp/htdocs/gis_drainase/application/views/data_map_sukorejo.php",
+		"/C/xampp/htdocs/gis_drainase/application/views/layouts/header_map_lfjs.php",
+		"/C/xampp/htdocs/gis_drainase/application/views/header.php",
+		"/C/xampp/htdocs/gis_drainase/application/config/constants.php",
+		"/C/xampp/htdocs/gis_drainase/application/views/drainase/show.php",
+		"/C/xampp/htdocs/gis_drainase/application/controllers/Kotablitar.php",
+		"/C/xampp/htdocs/gis_drainase/application/views/data_map_kota_blitar.php",
+		"/C/xampp/htdocs/gis_drainase/application/controllers/Kepanjenkidul.php",
+		"/C/xampp/htdocs/gis_drainase/data/as_drainase_kota_blitar_geojson.js",
+		"/C/xampp/htdocs/gis_drainase/application/views/data_map_kepanjen_kidul_old.php",
+		"/C/xampp/htdocs/gis_drainase/application/views/data_map_sananwetan.php",
+		"/C/xampp/htdocs/gis_drainase/application/controllers/Sukorejo.php",
+		"/C/xampp/htdocs/gis_drainase/data/as_jalan_drainase_kec_sukorejo_geojson.js",
+		"/C/xampp/htdocs/gis_drainase/application/views/jalan/index.php",
+		"/C/xampp/htdocs/gis_drainase/application/config/database.php",
+		"/C/xampp/htdocs/gis_drainase/data/as_drainase_kec_sukorejo_geojson.js",
+		"/C/xampp/htdocs/gis_drainase/application/controllers/Sananwetan.php",
+		"/C/xampp/htdocs/gis_drainase/data/as_drainase_kec_sananwetan_geojson.js",
+		"/C/xampp/htdocs/gis_drainase/data/as_drainase_kec_kepanjen_kidul_geojson.js",
+		"/C/xampp/htdocs/gis_drainase/data/as_drainase_kec_kepanjen_kidul_js.js",
+		"/C/xampp/htdocs/gis_drainase/application/views/data_map_lfjs_drainase.php",
+		"/E/existing_project/gis_drainase_blitar/web_source/gis_drainase_ard_20180211/gis_drainase/data/map/drainase_poly.js",
+		"/C/xampp/htdocs/gis_drainase/application/views/layouts/footer_map_lfjs.php",
+		"/C/xampp/htdocs/gis_drainase/application/views/layouts/template_map_lfjs.php",
+		"/C/xampp/htdocs/gis_drainase_2018/gis_drainase_2018/application/config/database.php",
+		"/C/xampp/htdocs/gis_drainase/data/as_drainase_kec_kepanjen_kidul.geojson",
+		"/C/xampp/htdocs/gis_drainase/data/admin_kec_sukorejo_geojson.js",
+		"/E/existing_project/sim_rs/lis_rsud",
+		"/C/xampp/htdocs/peta_drainase/application/config/database.php"
+	],
+	"find":
+	{
+		"height": 34.0
+	},
+	"find_in_files":
+	{
+		"height": 90.0,
+		"where_history":
+		[
+			"C:\\xampp\\htdocs\\simrs",
+			"C:\\xampp\\htdocs\\simrs\\vendor\\laravel\\framework",
+			"C:\\xampp\\htdocs\\simrs",
+			"C:\\xampp\\htdocs\\gis_drainase"
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"const version",
+			"application.php",
+			"header.blade",
+			"header.blade.php",
+			"header.blade",
+			"dashboard",
+			"dashboard_pasien",
+			"rusal_material",
+			"kepan",
+			"kepanjen_kidul",
+			"kepan",
+			"sukorejo",
+			"as_drainase_kec_sukorejo_geojson_style"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"sananwetan"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 23.0
+	},
+	"input":
+	{
+		"height": 31.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"project": "simrs.sublime-project",
+	"replace":
+	{
+		"height": 42.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 306.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

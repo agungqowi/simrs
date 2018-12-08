@@ -1,0 +1,212 @@
+<?php
+
+class GudangMasukController extends \BaseController {
+
+	public $pref = "beli";
+    public $database = "gudangpembelian";
+	public $title = 'Pembelian';
+	public $slug = 'beli';
+	/**
+	 * Display a listing of the resource.
+	 *
+	 * @return Response
+	 */
+	public function index($pref='askes')
+	{
+		$this->setPref($pref);
+		$jenis_obat = DB::connection($this->database)->table($this->pref.'gudang')->get();
+		$supplier = DB::connection($this->database)->table($this->pref.'supplier')->get();
+		return View::make('gudang.general.masuk.create' , array(
+			'jenis_obat' => $jenis_obat , 
+			'supplier' => $supplier,
+			'pref' => $this->pref,
+			'title' => $this->title,
+			'slug' => $this->slug
+		));
+	}
+
+	public function setPref($pref)
+	{
+		if($pref == 'beli'){
+			$this->pref = '';
+			$this->title = 'Pembelian';
+			$this->slug = 'beli';
+            $this->database = 'gudangpembelian';
+		}
+		else{
+			$this->pref = '';
+			$this->title = 'Dropping';
+			$this->slug = 'dropping';
+            $this->database = 'gudangdropping';
+		}
+	}
+
+
+
+	public function tambah_transaksi($pref='askes')
+	{
+		$this->setPref($pref);
+		$id_obat = Input::get('id_obat');
+
+		if($id_obat == 'NEW'){
+			$rules = array(
+				'no_bukti'    => 'required|min:3', 
+				'id_obat'    => 'required|min:1', 
+				'jumlah'    => 'required|min:1', 
+				'harga'    => 'required|min:1',
+				'harga_beli'    => 'required|min:1',
+				'kode_supplier'    => 'required|min:1', 
+			);
+		}
+		else{
+			$rules = array(
+				'no_bukti'    => 'required|min:3', 
+				'id_obat'    => 'required|min:1', 
+				'jumlah'    => 'required|min:1', 
+				'harga'    => 'required|min:1',
+				'harga_beli'    => 'required|min:1', 
+				'total'    => 'required|min:1', 
+				'kode_supplier'    => 'required|min:1', 
+			);
+		}
+		
+
+		// run the validation rules on the inputs from the form
+		$validator = Validator::make(Input::all(), $rules);
+		if ($validator->fails()) {
+			$messages = $validator->messages();
+			foreach ($messages->all() as $message) 
+			{
+				echo $message;
+			}
+			
+		} else {
+			$jumlah = intval(Input::get('jumlah'));
+			if($jumlah > 0 || $id_obat == 'NEW'){
+				$masuk = DB::connection($this->database)->table($this->pref.'masuk')->orderBy('masukid','desc')->first();
+				if($masuk){
+					$masuk_id = intval($masuk->masukid);
+					$masuk_id++;
+				}
+				else{
+					$masuk_id = 1;
+				}
+
+				
+
+				$date = DateTime::createFromFormat('d/m/Y', Input::get('masa'));
+				$masa = $date->format('Y-m-d');
+				$new_stok = Input::get('stok_awal') + $jumlah;
+				if($id_obat == 'NEW'){
+					$t = DB::connection($this->database)->table($this->pref.'obat')->orderBy('kodobat', 'desc')->first();
+					$ari = intval($t->kodobat);
+					$ari++;
+					if($pref == 'beli'){
+						$obat = new DinasObat;
+					}
+					else{
+						$obat = new AskesObat;
+					}
+
+					DB::connection($this->database)->table($this->pref.'obat')->insert( array(
+						'kodobat' => $ari,
+						'namaobat' => Input::get('nama_obat'),
+						'kodegudang' => Input::get('jenis_obat'),
+						'komposisi' => Input::get('komposisi'),
+						'satuan' => Input::get('satuan'),
+						'harga' => Input::get('harga'),
+						'hargabeli' => Input::get('harga_beli'),
+						'masa' => $masa,
+						'stok' => $jumlah,
+					));
+					$id_obat = $ari;
+				}
+				else{
+					$obat = DB::connection($this->database)->table($this->pref.'obat')->where('kodobat', $id_obat )->update(
+							array('stok' => $new_stok , 'masa' => $masa , 'harga' => Input::get('harga'), 'hargabeli' => Input::get('harga_beli'))
+					);
+				}
+
+				$tgl_masuk = DateTime::createFromFormat('d/m/Y', Input::get('tanggal_masuk'));
+
+				DB::connection($this->database)->table($this->pref.'masuk')->insert(
+					array(	'masukid' => $masuk_id , 'tglnota' => $tgl_masuk->format('Y-m-d') , 
+							'kodesupp' => Input::get('kode_supplier') , 'nomorba' => Input::get('no_bukti'))
+				);
+
+				
+
+				$laporan = DB::connection($this->database)->table($this->pref.'lapstok')->orderBy('no','desc')->first();
+				if($laporan){
+					$next = intval($laporan->no);
+					$next++;
+				}
+				else{
+					$next = 1;
+				}
+				DB::connection($this->database)->table($this->pref.'lapstok')->insert(
+					array('no' => $next, 'kodobat' => $id_obat , 'noba' => Input::get('no_bukti') , 'noppm' => '-' ,
+						'nobp' => '-' , 'dariuntuk' => Input::get('nama_supplier') , 'keluar' => '0' ,
+						'masuk' => $jumlah , 'sisa' => $new_stok , 'tanggal' => $tgl_masuk->format('Y-m-d')
+					)
+				);
+				echo 'sukses';
+			}
+			else{
+				echo 'Jumlah Pembelian yang dimasukkan salah';
+			}
+			
+		}
+	}
+
+	public function list_transaksi($pref="beli")
+	{
+		$this->setPref($pref);
+		$no_bukti = Input::get('no_bukti');
+		$data = DB::connection($this->database)->table($this->pref.'lapstok')->join($this->pref.'obat',$this->pref.'lapstok.kodobat' ,'=' ,$this->pref.'obat.kodobat')
+				->where('noba','=' ,$no_bukti)->get();
+		return $data;
+	}
+
+	public function hapus_transaksi($pref="askes")
+	{
+		$this->setPref($pref);
+		$no = Input::get('no');
+		$noba = Input::get('noba');
+		$select = DB::connection($this->database)->table($this->pref.'lapstok')->where('no' , '=' , $no)->where('noba' , '=' , $noba)->get();
+		$j = 0;
+		foreach($select as $s){
+			$obat = DB::connection($this->database)->table($this->pref.'obat')->where('kodobat', $s->kodobat )->first();
+			$new_stok = $obat->stok - $s->masuk;
+			//$k=DB::connection($this->database)->table($this->pref.'obat')->where('kodobat', $s->kodobat )->update(array('stok' => $new_stok));
+			$j++;
+		}
+		//$data = DB::connection($this->database)->table($this->pref.'lapstok')->where('no' , '=' , $no)->where('noba' , '=' , $noba)->delete();
+		return $j;
+	}
+
+	public function terbilang($x)
+	{
+	  	$abil = array("", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas");
+	  	if ($x < 12)
+	    	return " " . $abil[$x];
+	  	elseif ($x < 20)
+	    	return $this->terbilang($x - 10) . "belas";
+	  	elseif ($x < 100)
+	    	return $this->terbilang($x / 10) . " puluh" . $this->terbilang($x % 10);
+	  	elseif ($x < 200)
+	    	return " seratus" . $this->terbilang($x - 100);
+	  	elseif ($x < 1000)
+	   		return $this->terbilang($x / 100) . " ratus" . $this->terbilang($x % 100);
+	  	elseif ($x < 2000)
+	    	return " seribu" . $this->terbilang($x - 1000);
+	  	elseif ($x < 1000000)
+	    	return $this->terbilang($x / 1000) . " ribu" . $this->terbilang($x % 1000);
+	  	elseif ($x < 1000000000)
+	    	return $this->terbilang($x / 1000000) . " juta" . $this->terbilang($x % 1000000);
+	}
+
+
+
+
+}
