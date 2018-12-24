@@ -408,13 +408,17 @@ class LabController extends \BaseController {
 		else{
 			$pasien = array();
 		}
-		
-		return View::make('lab.cetak_hasil' , array(
+
+		$tes = array(
 				'id' 		=> $id ,
 				'detail' 	=> $detail ,
 				'data' 		=> $data ,
 				'pasien'	=> $pasien
-			));
+			);
+
+		//print_r($tes); exit;
+		
+		return View::make('lab.cetak_hasil' , $tes);
 	}
 
 	/**

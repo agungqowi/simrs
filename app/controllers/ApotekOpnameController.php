@@ -35,14 +35,15 @@ class ApotekOpnameController extends \CrudController {
 		$column['namaobat'] 		= 'Nama Obat';
 		$column['satuan'] 			= 'Satuan';
 		$column['het'] 		 		= array('title' => 'HET' , 'type' => 'inputtext' , 'class' => 'het-op');
-		$column['stok_op'] 		 	= array('title' => 'SO Obat' , 'type' => 'inputtext' , 'class' => 'stok-op');
+		$column['stok_op'] 		 	= array('title' => 'SO Obat1' , 'type' => 'inputtext' , 'class' => 'stok-op');
 		$column['stok'] 		 	= 'Stok Komputer';
+		$column['namajenis'] 		= 'Jenis Obat';
 
 		return $column;
 	}
 
 	public function getSearchColumn(){
-		$column 	= array('namaobat' , 'satuan');
+		$column 	= array('namaobat' , 'satuan','namajenis');
 
 		return $column;
 	}
