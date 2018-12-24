@@ -91,10 +91,10 @@
                                     </tr>
                                 </table>
                                 <br />
-                                <table cellpadding="7" cellspacing="7" class="border" width="700px">
+                                <table cellpadding="7" cellspacing="7" class="border" width="95%">
                                 <thead>
                                     <tr>
-                                        <th>Nama Pemeriksaan qq</th>
+                                        <th>Nama Pemeriksaan</th>
                                         <th>Hasil</th>
                                         <th>Rujukan</th>
                                         <th>Satuan</th>
@@ -103,25 +103,141 @@
                                 <tbody>
                                 <?php
                                 if(isset($detail) && count($detail) > 0 ){
+                                    
+                                    $all    = DB::table('lab_pemeriksaan')->where('group_jasa' ,'0')->get();
+                                    $aprint =  "";                                   
+                                    // parent 0
+                                    foreach($all as $a){
+                                        $print  = false;
+                                        
+                                        $ch1    = DB::table('lab_pemeriksaan')->where('group_jasa' ,$a->kode_jasa)->get();
+                                        $cprint = array();
+                                        $aprint = "<tr><td colspan='4'><b>".$a->nama_jasa."</b></td></tr>";
+                                        //print_r($a->nama_jasa);exit();
+                                        // isi detail level 0
+                                        if( count($ch1) > 0 ){
+
+                                            foreach ($ch1 as $cp1 ){
+                                                foreach($detail as $dt){
+                                                    if( $dt->id_pemeriksaan == $cp1->kode_jasa ) {
+                                                        $aprint .= "<tr>";
+                                                        $aprint .= "<td>&nbsp;&nbsp;".$cp1->nama_jasa."</b></td>";
+                                                        $aprint .= "<td align='center'>".$dt->hasil."</td>";
+                                                        $aprint .= "<td align='center'>".$cp1->nilai_normal."</td>";
+                                                        $aprint .= "<td align='center'>".$cp1->unit."</td>";
+                                                        $aprint .="</tr>";
+
+                                                        $print=true;
+
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // End detail level 0
+
+
+                                        if( count($ch1) > 0 ){
+                                            //parent 1
+                                            foreach( $ch1 as $cp1 ){
+                                                $lp1    = 0;
+                                                if( isset($cp1->kode_jasa) ){
+                                                    $ch2    = DB::table('lab_pemeriksaan')->where('group_jasa' ,$cp1->kode_jasa)->get();
+
+                                                    if( count($ch2) > 0 ){
+
+                                                        foreach( $ch2 as $cp2 ){
+                                                            foreach($detail as $da){
+                                                                
+                                                               //echo $cp2->kode_jasa."  ";echo $cp2->nama_jasa."  ";echo $da->id_pemeriksaan."<br>";
+                                                               if( $da->id_pemeriksaan == $cp2->kode_jasa ){
+                                                                    $print  = true;
+
+                                                                    //echo "Yes";exit();
+                                                                    if( $lp1 == 0 ){
+                                                                        $aprint .= "<tr>";
+                                                                        $aprint .= "<td colspan='4'><b>&nbsp;".$cp1->nama_jasa."</b></td>";
+                                                                        $aprint .="</tr>";
+                                                                    }
+                                                                    $lp1++;
+
+                                                                    $aprint .= "<tr>";
+                                                                    $aprint .= "<td>&nbsp;&nbsp;".$cp2->nama_jasa."</b></td>";
+                                                                    $aprint .= "<td align='center'>".$da->hasil."</td>";
+                                                                    $aprint .= "<td align='center'>".$cp2->nilai_normal."</td>";
+                                                                    $aprint .= "<td align='center'>".$cp2->unit."</td>";
+                                                                    $aprint .="</tr>";
+
+                                                                }
+                                                                else{
+                                                                    //$print  = true;
+                                                                   // echo "No";exit();
+                                                                    //echo $cp2->nama_jasa."  ";echo $da->id_pemeriksaan."<br>";
+
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                }
+                                                else{
+                                                    foreach($detail as $da){
+                                                        if( $da->id_pemeriksaan == $ch1->kode_jasa ){
+                                                            $print  = true;
+                                                        }
+                                                    }
+                                                }
+
+
+                                            }
+                                        }
+                                        
+                                        if( $print ){
+                                            echo $aprint;
+                                        }
+                                    }
+                                    
+
+                                    /*
+                                    $cetak  = array();
+                                    $cp1       =array();
                                     foreach($detail as $da){
-                                        echo "<tr>";
+                                        //echo "<tr>";
                                         $detail                 = array();
                                         $d                      = DB::table('lab_pemeriksaan')->where('kode_jasa', $da->id_pemeriksaan)->first();
+                                        // parent diatasnya
+
                                         if( isset($d->nama_jasa) ){
-                                            echo "<td>".$d->nama_jasa."</td>";
+                                            $jasa = array();
+                                            $jasa['kode_jasa']  = $d->kode_jasa;
+                                            $jasa['nama_jasa']  = $d->nama_jasa;
+                                            $jasa['hasil']      = $da->hasil;
+                                            $jasa['nilai_normal']   = $d->nilai_normal;
+                                            $jasa['unit']           = $d->unit;
+
+                                            $p1     = DB::table('lab_pemeriksaan')->where('kode_jasa' , $d->group_jasa)->first();
+
+                                            if( isset($p1->nama_jasa) ){
+                                                $cp1    = 
+                                                $p1_jasa = array();
+                                                $p1_jasa['kode_jasa']       = $p1->kode_jasa;
+                                                $p1_jasa['nama_jasa']       = $p1->nama_jasa;
+
+                                                $p2 = DB::table('lab_pemeriksaan')->where('kode_jasa' , $p1->group_jasa)->first();
+
+                                                if( isset($p2->nama_jasa) ){
+                                                    $cetak[ $p2->kode_jasa ][]  = array('meta' => $p2->nama_jasa , 'content' => $p1_jasa );
+                                                }
+                                                else{
+                                                    $cetak[ $p1->kode_jasa ]    = 
+                                                }
+                                            }
                                         }
                                         else{
-                                            echo "<td></td>";
+
                                         }
-                                        echo "<td align='center'>".$da->hasil."</td>";
-                                        echo "<td align='center'>".$d->nilai_normal."</td>";
-                                        
-                                        echo "<td>".$d->unit."</td>";
-
-                                        $nilai_normal           = array();
-
-                                        echo "</tr>";
                                     }
+                                    */
                                 }
                                 
                                 ?>
